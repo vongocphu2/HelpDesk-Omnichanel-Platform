@@ -1,4 +1,10 @@
-import {Column,CreateDateColumn,Entity,Index,PrimaryGeneratedColumn,} from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  Index,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
 @Entity('telegram_processed_updates')
 @Index('uq_telegram_processed_update_id', ['updateId'], {
@@ -29,7 +35,7 @@ export class TelegramProcessedUpdate {
     length: 20,
     default: 'processing',
   })
-  status!: string;
+  status!: 'processing' | 'completed'; //database vẫn giữ nguyên kiểu varchar
 
   @CreateDateColumn({
     name: 'created_at',
