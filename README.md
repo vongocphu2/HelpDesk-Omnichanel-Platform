@@ -27,9 +27,8 @@
 | :---: | :--- | :---: | :--- | :--- |
 | 1 | **Võ Ngọc Phú** | 29211162610 | **Scrum Master, Lead Dev (Backend & AI)** | `vongocphu136@gmail.com` |
 | 2 | **Võ Thị Thu Lộc** | 29209224248 | **Developer (Backend, Channels & Queue)** | `votthuloc@dtu.edu.vn` |
-| 3 | **Võ Hồng Phúc** | 29219021591 | **Developer (Frontend Lead, Unified Inbox & Figma)** | `vohongphucnt05@gmail.com` |
-| 4 | **Võ Lý Hùng** | 29219020527 | **Developer (Frontend UI/UX, Portal & Dashboard)** | `volyhung555@gmail.com` |
-| 5 | **Trương Đình Thảo Đoan** | 29204138095 | **QA / Tester Chuyên trách (Test Plan, Automation & Report)** | `thaodoan29082005@gmail.com` |
+| 3 | **Võ Hồng Phúc** | 29219021591 | **Developer (Frontend Lead & UI/UX)** | `vohongphucnt05@gmail.com` |
+| 4 | **Trương Đình Thảo Đoan** | 29204138095 | **QA / Tester Chuyên trách (Test Plan, Automation & Report)** | `thaodoan29082005@gmail.com` |
 
 ---
 
@@ -121,6 +120,12 @@ Giao diện người dùng sẽ chạy tại: `http://localhost:5173`.
 
 * **Sprint 1 (21/09 – 29/09/2026)**: Nền tảng kỹ thuật, Docker local, ERD CSDL, UI Design System trên Figma, Prompt AI baseline.
 * **Sprint 2 (30/09 – 07/10/2026)**: Tiếp nhận Ticket qua Web Form & Email (IMAP/SMTP), Customer Portal.
+  * **Task 2.1 (Phú - 5h)**: API tạo vé từ Web Form (`POST /api/v1/tickets`) — **Đã hoàn thành 100%**.
+  * **Task 2.2 (Phú - 5h)**: API xem danh sách & chi tiết vé (`GET /api/v1/tickets`, `GET /api/v1/tickets/:id`) kèm bộ lọc phân trang và ưu tiên vé AI Bump — **Đã hoàn thành 100%** (Xem tài liệu tích hợp: `docs/API_TASK_2.2_SPEC_GUIDE.md`).
+  * **Task 2.5b (Phú - 1.5h)**: Frontend API Service & Validation Client-side (`ticket.service.js`) — **Đã hoàn thành 100%**.
+  * **Task 2.3 & 2.4 (Lộc - 12h)**: Kết nối Email IMAP/SMTP & Chuẩn hóa Email thành Ticket — *Đang tiến hành*.
+  * **Task 2.5a & 2.6 (Phúc - 9.5h)**: UI Customer Portal & Bảng danh sách Ticket — *Đang tiến hành*.
+  * **Task 2.5d & 2.7 (Đoan - 7h)**: Kiểm thử Validation & Kịch bản tiếp nhận vé Web/Email — *Đang tiến hành*.
 * **Sprint 3 (08/10 – 16/10/2026)**: Kênh Telegram Bot Webhook & **AI Feature 1: Đọc cảm xúc & Tự động nâng Priority**.
 * **Sprint 4 (17/10 – 24/10/2026)**: Quản lý vòng đời Ticket, Phân quyền RBAC (Admin/Manager/Agent), Thuật toán phân công Round-robin.
 * **Sprint 5 (25/10 – 03/11/2026)**: Giao diện **Unified Inbox realtime** (WebSocket) & **AI Feature 2: Gợi ý câu trả lời chuẩn mực**.

@@ -5,7 +5,7 @@ import { ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import * as nodemailer from 'nodemailer';
-import { readFile, writeFile, rename, rm } from 'node:fs/promises';
+import { readFile, writeFile, rename, rm, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { NormalizedEmail } from './normalized-email.interface.js';
 import { TicketsService } from '../tickets/tickets.service.js';
@@ -15,6 +15,7 @@ import { EmailProcessedMessage } from './email-processed.entity.js';
 interface EmailSyncState {
   uidValidity: string | null;
   lastProcessedUid: number | null;
+  failedUids: number[];
 }
 @Injectable()
 export class EmailService {
@@ -28,13 +29,11 @@ export class EmailService {
 
   // Hàm 1: Lấy cấu hình IMAP từ file .env
   getImapConfig() {
+    const port = Number(this.configService.get<string>('EMAIL_IMAP_PORT'));
     return {
       host: this.configService.get<string>('EMAIL_IMAP_HOST'),
-      port: Number(
-        this.configService.get<string>('EMAIL_IMAP_PORT'),
-      ),
-      secure:
-        this.configService.get<string>('EMAIL_IMAP_SECURE') === 'true',
+      port,
+      secure: this.getImapSecure(port),
       user: this.configService.get<string>('EMAIL_USER'),
     };
   }
@@ -305,10 +304,17 @@ private async processEmailWithTransaction(
 
   
   
-  //@Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_MINUTE)
   async checkNewEmailsAutomatically(): Promise<void> {
     // Tránh chạy chồng hai lần kiểm tra
     if (this.isCheckingEmail) {
+      return;
+    }
+
+    // Nếu chưa cấu hình email trong môi trường thì bỏ qua
+    const host = this.configService.get<string>('EMAIL_IMAP_HOST');
+    const user = this.configService.get<string>('EMAIL_USER');
+    if (!host || !user || user.includes('example.com') || user.includes('your_helpdesk')) {
       return;
     }
 
@@ -329,6 +335,7 @@ private async processEmailWithTransaction(
         await this.saveEmailSyncState({
           uidValidity: inboxInfo.uidValidity,
           lastProcessedUid: inboxInfo.lastUid,
+          failedUids: [],
         });
 
         console.log(
@@ -354,43 +361,52 @@ private async processEmailWithTransaction(
         state.lastProcessedUid,
       );
 
-      if (newUids.length === 0) {
+      // Retry failed messages even after the cursor has advanced or the app restarts.
+      const pendingUids = new Set(state.failedUids);
+      const uids = [...new Set([...state.failedUids, ...newUids])]
+        .sort((a, b) => a - b);
+
+      if (uids.length === 0) {
         console.log('[EMAIL AUTO CHECK] Không có email mới.');
         return;
       }
 
       console.log(
-        `[EMAIL AUTO CHECK] Phát hiện ${newUids.length} email mới.`,
+        `[EMAIL AUTO CHECK] Xử lý ${uids.length} email mới hoặc cần thử lại.`,
       );
 
-      // Xử lý lần lượt từng email
-     
-      // Xử lý lần lượt từng email
-      for (const uid of newUids) {
-        const email = await this.normalizeEmail(uid);
+      for (const uid of uids) {
+        try {
+          const email = await this.normalizeEmail(uid);
 
-        console.log('[EMAIL NORMALIZED]', {
-          imapUid: email.imapUid,
-          messageIdPresent: email.messageId !== null,
-          subjectPresent: email.subject.length > 0,
-          fromEmailPresent: email.fromEmail.length > 0,
-          contentLength: email.content.length,
-          receivedAt: email.receivedAt,
-          channel: email.channel,
-        });
+          console.log('[EMAIL NORMALIZED]', {
+            imapUid: email.imapUid,
+            messageIdPresent: email.messageId !== null,
+            subjectPresent: email.subject.length > 0,
+            fromEmailPresent: email.fromEmail.length > 0,
+            contentLength: email.content.length,
+            receivedAt: email.receivedAt,
+            channel: email.channel,
+          });
 
-        // Tạo Ticket từ email đã chuẩn hóa
-        // Tạo Ticket và ghi nhận email trong cùng transaction
-       await this.processEmailWithTransaction(
-        email,
-        state.uidValidity,
-       );
+          await this.processEmailWithTransaction(email, state.uidValidity);
+          pendingUids.delete(uid);
+        } catch (error) {
+          pendingUids.add(uid);
+          console.error(
+            `[EMAIL AUTO CHECK] UID ${uid} thất bại; sẽ thử lại ở lượt sau:`,
+            error instanceof Error ? error.message : 'Lỗi không xác định',
+          );
+        }
 
-        // Chỉ lưu UID sau khi tạo Ticket thành công
+        // Persist the cursor and retry list together. A disk failure aborts this
+        // poll; the DB's unique key makes replaying a committed ticket safe.
         await this.saveEmailSyncState({
           uidValidity: state.uidValidity,
-          lastProcessedUid: uid,
+          lastProcessedUid: Math.max(state.lastProcessedUid, uid),
+          failedUids: [...pendingUids].sort((a, b) => a - b),
         });
+        state.lastProcessedUid = Math.max(state.lastProcessedUid, uid);
       }
 
     } catch (error) {
@@ -458,7 +474,9 @@ private async processEmailWithTransaction(
 
     const user = this.configService.get<string>('EMAIL_USER');
     const pass = this.configService.get<string>('EMAIL_PASSWORD');
-    const from = this.configService.get<string>('EMAIL_FROM');
+    const fromName = this.configService.get<string>('EMAIL_FROM_NAME');
+    const rawFrom = this.configService.get<string>('EMAIL_FROM') || user;
+    const from = fromName && rawFrom ? `"${fromName}" <${rawFrom}>` : rawFrom;
 
     // Kiểm tra cấu hình SMTP
     if (
@@ -502,64 +520,111 @@ private async processEmailWithTransaction(
   
   // Đọc trạng thái đồng bộ email từ file JSON
   private async loadEmailSyncState(): Promise<EmailSyncState> {
-    const filePath = join(
+    const dirPath = join(
       process.cwd(),
       'data',
+    );
+    const filePath = join(
+      dirPath,
       'email-sync-state.json',
     );
 
-    const fileContent = await readFile(filePath, 'utf8');
+    try {
+      const fileContent = await readFile(filePath, 'utf8');
 
-    const state: unknown = JSON.parse(fileContent);
+      const state: unknown = JSON.parse(fileContent);
 
-    // Kiểm tra cấu trúc dữ liệu trước khi sử dụng
-    if (
-      typeof state !== 'object' ||
-      state === null ||
-      !('uidValidity' in state) ||
-      !('lastProcessedUid' in state)
-    ) {
-      throw new Error('File trạng thái email không hợp lệ');
-    }
+      // Kiểm tra cấu trúc dữ liệu trước khi sử dụng
+      if (
+        typeof state !== 'object' ||
+        state === null ||
+        !('uidValidity' in state) ||
+        !('lastProcessedUid' in state)
+      ) {
+        throw new Error('File trạng thái email không hợp lệ');
+      }
 
-    const { uidValidity, lastProcessedUid } = state;
+      const { uidValidity, lastProcessedUid } = state;
+      // Older state files do not have a retry list.
+      const failedUids = 'failedUids' in state ? state.failedUids : [];
 
-    if (
-      !(
-        uidValidity === null ||
-        typeof uidValidity === 'string'
-      ) ||
-      !(
-        lastProcessedUid === null ||
-        (
-          typeof lastProcessedUid === 'number' &&
-          Number.isSafeInteger(lastProcessedUid) &&
-          lastProcessedUid >= 0
+      if (
+        !(
+          uidValidity === null ||
+          typeof uidValidity === 'string'
+        ) ||
+        !(
+          lastProcessedUid === null ||
+          (
+            typeof lastProcessedUid === 'number' &&
+            Number.isSafeInteger(lastProcessedUid) &&
+            lastProcessedUid >= 0
+          )
         )
-      )
-    ) {
-      throw new Error('Dữ liệu trạng thái email không hợp lệ');
-    }
+      ) {
+        throw new Error('Dữ liệu trạng thái email không hợp lệ');
+      }
 
-    return {
-      uidValidity,
-      lastProcessedUid,
-    };
+      if (
+        !Array.isArray(failedUids) ||
+        !failedUids.every((uid: unknown) =>
+          typeof uid === 'number' && Number.isSafeInteger(uid) && uid > 0,
+        )
+      ) {
+        throw new Error('Danh sách UID cần thử lại không hợp lệ');
+      }
+
+      return {
+        uidValidity,
+        lastProcessedUid,
+        failedUids: [...new Set<number>(failedUids)],
+      };
+    } catch (error: unknown) {
+      const isEnoent =
+        error instanceof Error &&
+        'code' in error &&
+        (error as { code: string }).code === 'ENOENT';
+
+      if (isEnoent) {
+        const defaultState: EmailSyncState = {
+          uidValidity: null,
+          lastProcessedUid: null,
+          failedUids: [],
+        };
+
+        // Tự động tạo thư mục data và file trạng thái ban đầu khi project mới clone
+        await mkdir(dirPath, { recursive: true });
+        await writeFile(
+          filePath,
+          JSON.stringify(defaultState, null, 2),
+          'utf8',
+        );
+
+        return defaultState;
+      }
+
+      throw error;
+    }
   }
   
   // Lưu trạng thái đồng bộ IMAP vào file JSON
   private async saveEmailSyncState(
     state: EmailSyncState,
   ): Promise<void> {
-    const filePath = join(
+    const dirPath = join(
       process.cwd(),
       'data',
+    );
+    const filePath = join(
+      dirPath,
       'email-sync-state.json',
     );
 
     const tempPath = `${filePath}.tmp`;
 
     const content = JSON.stringify(state, null, 2);
+
+    await mkdir(dirPath, { recursive: true });
 
     try {
       // Ghi trạng thái mới vào file tạm
@@ -621,6 +686,13 @@ private async processEmailWithTransaction(
     }
   }
 
+  private getImapSecure(port: number): boolean {
+    const configured = this.configService.get<string>('EMAIL_IMAP_SECURE');
+    return configured === undefined || configured === ''
+      ? port === 993
+      : configured === 'true';
+  }
+
   // Hàm hỗ trợ: Tạo kết nối IMAP
   private createImapClient(): ImapFlow {
     const host =
@@ -630,8 +702,7 @@ private async processEmailWithTransaction(
       this.configService.getOrThrow<string>('EMAIL_IMAP_PORT'),
     );
 
-    const secure =
-      this.configService.get<string>('EMAIL_IMAP_SECURE') === 'true';
+    const secure = this.getImapSecure(port);
 
     const user =
       this.configService.getOrThrow<string>('EMAIL_USER');
