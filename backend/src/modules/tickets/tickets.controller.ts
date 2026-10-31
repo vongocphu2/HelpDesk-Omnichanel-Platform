@@ -7,12 +7,13 @@ import {
     Query,
     HttpStatus,
     HttpCode,
+    Patch,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { TicketsService } from './tickets.service.js';
 import { CreateTicketDto } from './dto/create-ticket.dto.js';
 import { QueryTicketDto } from './dto/query-ticket.dto.js';
-
+import { AssignTicketDto } from './dto/assign-ticket.dto.js';
 @ApiTags('Tickets (Quản lý Yêu cầu Hỗ trợ)')
 @Controller('tickets')
 export class TicketsController {
@@ -88,4 +89,44 @@ export class TicketsController {
             data: ticket,
         };
     }
+    
+    @Patch(':id/assign')
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({
+      summary: 'Phân công Ticket cho Agent (Task 4.2)',
+      description:
+        'Phân công Ticket cho một Agent đang hoạt động, sử dụng dữ liệu thực tế trong PostgreSQL.',
+    })
+    @ApiParam({
+      name: 'id',
+      description: 'UUID hoặc mã Ticket (ví dụ TK-7641)',
+    })
+    @ApiResponse({
+      status: HttpStatus.OK,
+      description: 'Phân công Ticket thành công',
+  })
+    @ApiResponse({
+      status: HttpStatus.BAD_REQUEST,
+      description: 'Agent không hợp lệ hoặc không hoạt động',
+   })
+    @ApiResponse({
+      status: HttpStatus.NOT_FOUND,
+      description: 'Không tìm thấy Ticket',
+    })
+async assignTicket(
+    @Param('id') id: string,
+    @Body() dto: AssignTicketDto,
+) {
+    const ticket = await this.ticketsService.assignTicket(
+      id,
+      dto.agent_id,
+    );
+
+  return {
+    statusCode: HttpStatus.OK,
+    message: 'Phân công Ticket thành công',
+    data: ticket,
+  };
+}
+
 }

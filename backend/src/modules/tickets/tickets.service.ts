@@ -1,5 +1,5 @@
 
-import {Injectable,NotFoundException,ConflictException,Logger,} from '@nestjs/common';
+import {Injectable,NotFoundException,ConflictException,Logger,BadRequestException,} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 
@@ -409,4 +409,55 @@ export class TicketsService {
 
     return ticket;
   }
+  
+async assignTicket(ticketId: string, agentId: string): Promise<Ticket> {
+  return this.ticketRepo.manager.transaction(async (manager) => {
+    const ticketRepo = manager.getRepository(Ticket);
+    const userRepo = manager.getRepository(User);
+
+    // Tìm Ticket thật trong PostgreSQL và khóa bản ghi
+    // để tránh hai yêu cầu phân công đồng thời ghi đè nhau.
+    const ticket = await ticketRepo
+      .createQueryBuilder('ticket')
+      .setLock('pessimistic_write')
+      .where('ticket.ticket_id = :id OR ticket.ticket_code = :id', {
+        id: ticketId,
+      })
+      .getOne();
+
+    if (!ticket) {
+      throw new NotFoundException('Không tìm thấy Ticket');
+    }
+
+    // Kiểm tra Agent tồn tại, có vai trò Agent và đang hoạt động.
+    const agent = await userRepo
+      .createQueryBuilder('user')
+      .innerJoin('user.role', 'role')
+      .where('user.user_id = :agentId', { agentId })
+      .andWhere('LOWER(role.role_name) = :roleName', {
+        roleName: 'agent',
+      })
+      .andWhere('LOWER(user.status) = :status', {
+        status: 'active',
+      })
+      .getOne();
+
+    if (!agent) {
+      throw new BadRequestException(
+        'Agent không tồn tại, không có vai trò Agent hoặc không hoạt động',
+      );
+    }
+
+    ticket.assigned_agent_id = agent.user_id;
+
+    await ticketRepo.save(ticket);
+
+    this.logger.log(
+      `Đã phân công Ticket ${ticket.ticket_code} cho Agent ${agent.user_id}`,
+    );
+
+    return this.findById(ticket.ticket_id, manager);
+  });
+}
+
 }
