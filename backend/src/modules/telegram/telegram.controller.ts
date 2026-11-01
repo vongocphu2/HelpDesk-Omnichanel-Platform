@@ -23,7 +23,20 @@ export class TelegramController implements OnModuleInit {
   ) { }
 
   onModuleInit(): void {
-    const secret = this
+    const secret = this.configService.get<string>(
+      'TELEGRAM_WEBHOOK_SECRET',
+    );
+
+    if (
+      typeof secret !== 'string' ||
+      !/^[A-Za-z0-9_-]{1,256}$/.test(secret)
+    ) {
+      throw new Error(
+        'TELEGRAM_WEBHOOK_SECRET phải có 1–256 ký tự, chỉ gồm chữ, số, _ và -',
+      );
+    }
+
+    this.expectedSecret = Buffer.from(secret);
   }
 
   private validateUpdate(

@@ -1,5 +1,5 @@
 
-import {Injectable,NotFoundException,ConflictException,Logger,} from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Logger, } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 
@@ -37,7 +37,7 @@ export class TicketsService {
 
     @InjectRepository(TicketStatusHistory)
     private readonly statusHistoryRepo: Repository<TicketStatusHistory>,
-  ) {}
+  ) { }
 
   /**
    * Sinh mã Ticket duy nhất dạng TK-xxxx.
@@ -144,6 +144,7 @@ export class TicketsService {
   async createFromWebForm(
     dto: CreateTicketDto,
     manager?: EntityManager,
+    telegramCustomerId?: string,
   ): Promise<Ticket> {
     const userRepo = manager
       ? manager.getRepository(User)
@@ -165,37 +166,68 @@ export class TicketsService {
       `Tiếp nhận yêu cầu từ: ${dto.customer_email} - Tiêu đề: ${dto.subject}`,
     );
 
-    // 1. Tìm hoặc tạo khách hàng
-    let customer = await userRepo.findOne({
-      where: { email: dto.customer_email },
-    });
+    // 1. Xác định khách hàng theo kênh.
+    let customer: User;
 
-    if (!customer) {
-      const customerRole = await this.getOrCreateRole(
-        'customer',
-        manager,
-      );
-
-      customer = userRepo.create({
-        full_name: dto.customer_name,
-        email: dto.customer_email,
-        phone: dto.customer_phone || null,
-        role_id: customerRole.role_id,
-        status: 'active',
-      });
-
-      customer = await userRepo.save(customer);
-    } else if (
-      dto.customer_name &&
-      customer.full_name !== dto.customer_name
-    ) {
-      customer.full_name = dto.customer_name;
-
-      if (dto.customer_phone) {
-        customer.phone = dto.customer_phone;
+    if (dto.channel_type === 'telegram') {
+      if (!manager || !telegramCustomerId) {
+        throw new ConflictException(
+          'Telegram phải xác định khách hàng trong transaction trước khi tạo ticket',
+        );
       }
 
-      await userRepo.save(customer);
+      const telegramCustomer = await userRepo.findOne({
+        where: { user_id: telegramCustomerId },
+      });
+
+      if (
+        !telegramCustomer ||
+        !telegramCustomer.telegram_user_id ||
+        telegramCustomer.status !== 'active'
+      ) {
+        throw new ConflictException(
+          'Khách hàng Telegram không tồn tại hoặc không hoạt động',
+        );
+      }
+
+      // Không tìm bằng email, không ghi đè hồ sơ tài khoản.
+      customer = telegramCustomer;
+    } else {
+      const existingCustomer = await userRepo.findOne({
+        where: { email: dto.customer_email },
+      });
+
+      if (!existingCustomer) {
+        const customerRole = await this.getOrCreateRole(
+          'customer',
+          manager,
+        );
+
+        customer = userRepo.create({
+          full_name: dto.customer_name,
+          email: dto.customer_email,
+          phone: dto.customer_phone || null,
+          role_id: customerRole.role_id,
+          status: 'active',
+        });
+
+        customer = await userRepo.save(customer);
+      } else {
+        customer = existingCustomer;
+
+        if (
+          dto.customer_name &&
+          customer.full_name !== dto.customer_name
+        ) {
+          customer.full_name = dto.customer_name;
+
+          if (dto.customer_phone) {
+            customer.phone = dto.customer_phone;
+          }
+
+          await userRepo.save(customer);
+        }
+      }
     }
 
     // 2. Tìm hoặc tạo kênh tiếp nhận
