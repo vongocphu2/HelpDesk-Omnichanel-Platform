@@ -7,6 +7,8 @@ import { EmailModule } from './modules/email/email.module.js';
 import { TicketsModule } from './modules/tickets/tickets.module.js';
 import { WebformModule } from './modules/webform/webform.module.js';
 import { EmailProcessedMessage } from './modules/email/email-processed.entity.js';
+import { TelegramModule } from './modules/telegram/telegram.module.js';
+import { TelegramProcessedUpdate } from './modules/telegram/telegram-processed-update.entity.js';
 import {
   Role,
   User,
@@ -49,6 +51,7 @@ import { HealthModule } from './modules/health/health.module.js';
           TicketStatusHistory,
           AuditLog,
           EmailProcessedMessage,
+          TelegramProcessedUpdate,
         ],
         synchronize: configService.get<boolean>('database.synchronize', true),
         logging: configService.get<boolean>('database.logging', false),
@@ -60,6 +63,7 @@ import { HealthModule } from './modules/health/health.module.js';
     EmailModule,
     TicketsModule,
     WebformModule,
+    TelegramModule,
   ],
 })
 export class AppModule { }
