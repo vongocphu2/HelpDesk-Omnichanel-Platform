@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 const initialForm = {
   fullName: "",
@@ -9,13 +8,18 @@ const initialForm = {
   description: "",
 };
 
-export default function CustomerPortal({ onSubmitTicket }) {
+export default function CustomerPortal({
+  onSubmitTicket,
+  onUploadAttachment,
+}) {
   const [form, setForm] = useState(initialForm);
   const [file, setFile] = useState(null);
   const [errors, setErrors] = useState({});
   const [ticketId, setTicketId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
+
+  const uploadedAttachmentRef = useRef(null);
 
   const update = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -56,16 +60,34 @@ export default function CustomerPortal({ onSubmitTicket }) {
 
   const handleFile = (event) => {
     const selected = event.target.files?.[0] || null;
-    setFile(selected);
-    setErrors((prev) => ({ ...prev, file: "" }));
+    let message = "";
 
-    if (selected && !["image/png", "image/jpeg", "application/pdf"].includes(selected.type)) {
-      setErrors((prev) => ({
-        ...prev,
-        file: "Chỉ hỗ trợ PNG, JPG hoặc PDF trong bản demo.",
-      }));
-      setFile(null);
+    if (selected) {
+      const allowedTypes = [
+        "image/png",
+        "image/jpeg",
+        "application/pdf",
+      ];
+
+      if (!allowedTypes.includes(selected.type)) {
+        message = "Chỉ hỗ trợ tệp PNG, JPG hoặc PDF.";
+      } else if (selected.size === 0) {
+        message = "Không thể tải lên tệp rỗng.";
+      } else if (selected.size > 5 * 1024 * 1024) {
+        message = "Dung lượng tệp không được vượt quá 5 MB.";
+      }
     }
+
+    setSubmitError("");
+    setErrors((prev) => ({ ...prev, file: message }));
+
+    if (message) {
+      setFile(null);
+      event.target.value = "";
+      return;
+    }
+
+    setFile(selected);
   };
 
   const handleSubmit = async (event) => {
@@ -75,15 +97,13 @@ export default function CustomerPortal({ onSubmitTicket }) {
     setSubmitError("");
     if (!validate()) return;
 
-    if (file) {
-      setSubmitError(
-        "Chức năng tải tệp chưa được kết nối. Vui lòng bỏ tệp để thử gửi yêu cầu."
-      );
+    if (typeof onSubmitTicket !== "function") {
+      setSubmitError("Chưa kết nối API tạo ticket.");
       return;
     }
 
-    if (!onSubmitTicket) {
-      setSubmitError("Chưa kết nối API tạo ticket.");
+    if (file && typeof onUploadAttachment !== "function") {
+      setSubmitError("Chưa kết nối chức năng tải tệp.");
       return;
     }
 
@@ -97,12 +117,36 @@ export default function CustomerPortal({ onSubmitTicket }) {
 
     try {
       setLoading(true);
+
+      if (file) {
+        let uploaded = uploadedAttachmentRef.current;
+
+        if (!uploaded || uploaded.file !== file) {
+          const result = await onUploadAttachment(file);
+
+          if (!result?.filename) {
+            throw new Error("Máy chủ chưa trả về tên tệp.");
+          }
+
+          uploaded = {
+            file,
+            filename: result.filename,
+          };
+
+          uploadedAttachmentRef.current = uploaded;
+        }
+
+        // Lưu tên tệp do máy chủ cấp vào trường đính kèm.
+        payload.attachment_url = uploaded.filename;
+      }
+
       const result = await onSubmitTicket(payload);
 
       if (!result?.ticket_code) {
         throw new Error("API chưa trả về mã ticket.");
       }
 
+      uploadedAttachmentRef.current = null;
       setTicketId(result.ticket_code);
     } catch (error) {
       const message =
@@ -255,8 +299,12 @@ export default function CustomerPortal({ onSubmitTicket }) {
                   type="file"
                   accept=".png,.jpg,.jpeg,.pdf"
                   onChange={handleFile}
+                  disabled={loading}
                   className="block w-full rounded-xl border border-dashed border-[#E4EAE6] p-4 text-sm"
                 />
+                <p className="mt-2 text-sm text-gray-500">
+                  Hỗ trợ PNG, JPG hoặc PDF. Dung lượng tối đa 5 MB.
+                </p>
                 {file && (
                   <p className="mt-2 text-sm text-emerald-700">
                     Đã chọn: {file.name}

@@ -50,7 +50,7 @@ import { HealthModule } from './modules/health/health.module.js';
           AuditLog,
           EmailProcessedMessage,
         ],
-        synchronize: configService.get<boolean>('database.synchronize', true),
+        synchronize: configService.get<boolean>('database.synchronize', false),
         logging: configService.get<boolean>('database.logging', false),
       }),
     }),

@@ -10,3 +10,6 @@ dist/
 
 # Email synchronization state
 data/email-sync-state.json
+
+# Local uploaded attachments
+uploads/

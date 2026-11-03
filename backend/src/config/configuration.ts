@@ -10,7 +10,7 @@ export default () => ({
         username: process.env.DB_USERNAME || 'postgres',
         password: process.env.DB_PASSWORD || 'postgres',
         database: process.env.DB_DATABASE || 'helpdesk_db',
-        synchronize: process.env.DB_SYNCHRONIZE === 'true' || true,
+        synchronize: process.env.DB_SYNCHRONIZE === 'true',
         logging: process.env.DB_LOGGING === 'true' || false,
     },
 

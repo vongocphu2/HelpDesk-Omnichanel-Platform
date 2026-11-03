@@ -3046,6 +3046,7 @@ function App() {
     return (
       <CustomerPortal
         onSubmitTicket={(payload) => ticketService.createTicket(payload)}
+        onUploadAttachment={(file) => ticketService.uploadAttachment(file)}
       />
     );
   }
