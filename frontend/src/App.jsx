@@ -1,6 +1,8 @@
+import ticketService from "./services/ticket.service.js";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import SettingsPage from "./SettingsPage.jsx";
+import CustomerPortal from "./pages/CustomerPortal.jsx";
 import {
   Activity,
   ArrowDownRight,
@@ -519,14 +521,14 @@ function InboxScreen({ initialQuery = "" }) {
       current.map((conversation) =>
         conversation.id === selectedId
           ? {
-              ...conversation,
-              preview: text,
-              time: "Vừa xong",
-              messages: [
-                ...conversation.messages,
-                { sender: "agent", time: "Vừa xong", text },
-              ],
-            }
+            ...conversation,
+            preview: text,
+            time: "Vừa xong",
+            messages: [
+              ...conversation.messages,
+              { sender: "agent", time: "Vừa xong", text },
+            ],
+          }
           : conversation,
       ),
     );
@@ -1502,10 +1504,10 @@ function Sidebar({
                         current.map((workspace) =>
                           workspace.id === selectedWorkspaceId
                             ? {
-                                ...workspace,
-                                plan: `Gói ${plan.name}`,
-                                planId: plan.id,
-                              }
+                              ...workspace,
+                              plan: `Gói ${plan.name}`,
+                              planId: plan.id,
+                            }
                             : workspace,
                         ),
                       );
@@ -2185,11 +2187,11 @@ function TicketManagement({ initialSearch = "" }) {
   const pageRows =
     isShowingAll && page > 1
       ? ticketManagementSamples
-          .slice(0, visibleEnd - visibleStart + 1)
-          .map((ticket, index) => ({
-            ...ticket,
-            id: `#TK-${String(2852 - (page - 1) * 10 - index).padStart(4, "0")}`,
-          }))
+        .slice(0, visibleEnd - visibleStart + 1)
+        .map((ticket, index) => ({
+          ...ticket,
+          id: `#TK-${String(2852 - (page - 1) * 10 - index).padStart(4, "0")}`,
+        }))
       : filteredRows.slice((page - 1) * 10, page * 10);
   const pageNumbers =
     totalPages <= 4
@@ -2197,14 +2199,14 @@ function TicketManagement({ initialSearch = "" }) {
       : page <= 3
         ? [1, 2, 3, "...", totalPages]
         : [
-            1,
-            "...",
-            page - 1,
-            page,
-            Math.min(page + 1, totalPages),
-            "...",
-            totalPages,
-          ];
+          1,
+          "...",
+          page - 1,
+          page,
+          Math.min(page + 1, totalPages),
+          "...",
+          totalPages,
+        ];
 
   const openCreateDialog = () => {
     setEditingId(null);
@@ -3040,6 +3042,14 @@ function App() {
           : "HelpDesk | Tổng quan";
   }, [pathname]);
 
+  if (pathname === "/customer-portal") {
+    return (
+      <CustomerPortal
+        onSubmitTicket={(payload) => ticketService.createTicket(payload)}
+      />
+    );
+  }
+
   if (pathname === "/login") {
     return (
       <AuthPage
@@ -3054,7 +3064,7 @@ function App() {
   }
 
   if (pathname === "/register") {
-    return <AuthPage key="register" mode="register" onLogin={() => {}} />;
+    return <AuthPage key="register" mode="register" onLogin={() => { }} />;
   }
 
   const navigate = (section, options = {}) => {
