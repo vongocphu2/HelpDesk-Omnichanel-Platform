@@ -7,6 +7,53 @@ import api from './api.js';
 
 export const ticketService = {
     /**
+     * Upload tệp đính kèm trước khi tạo ticket.
+     */
+    async uploadAttachment(file) {
+        if (!file) {
+            throw new Error('Vui lòng chọn tệp.');
+        }
+
+        const allowedTypes = [
+            'image/png',
+            'image/jpeg',
+            'application/pdf',
+        ];
+
+        if (!allowedTypes.includes(file.type)) {
+            throw new Error('Chỉ hỗ trợ PNG, JPG hoặc PDF.');
+        }
+
+        if (file.size === 0) {
+            throw new Error('Không thể tải lên tệp rỗng.');
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            throw new Error('Dung lượng tệp không được vượt quá 5 MB.');
+        }
+
+        const formData = new FormData();
+        formData.append('attachment', file);
+
+        const response = await api.post(
+            '/tickets/attachments',
+            formData,
+            {
+                // Bỏ Content-Type JSON mặc định.
+                // Trình duyệt tự đặt multipart/form-data và boundary.
+                headers: { 'Content-Type': null },
+            },
+        );
+
+        const uploaded = response.data || response;
+
+        if (!uploaded?.filename) {
+            throw new Error('API upload chưa trả về tên tệp.');
+        }
+
+        return uploaded;
+    },
+    /**
      * Kiểm tra tính hợp lệ của dữ liệu trước khi gửi lên máy chủ (Client-side Validation)
      * @param {Object} formData
      * @returns {{ isValid: boolean, errors: Object }}

@@ -10,6 +10,7 @@ import {
 } from '../../database/entities/index.js';
 import { TicketsService } from './tickets.service.js';
 import { TicketsController } from './tickets.controller.js';
+import { TicketUploadsController } from './ticket-uploads.controller.js';
 
 @Module({
     imports: [
@@ -22,7 +23,7 @@ import { TicketsController } from './tickets.controller.js';
             TicketStatusHistory,
         ]),
     ],
-    controllers: [TicketsController],
+    controllers: [TicketsController, TicketUploadsController],
     providers: [TicketsService],
     exports: [TicketsService],
 })
