@@ -1,6 +1,9 @@
+import { getTicketTriage, getTicketStatus } from "./services/ticket-triage.js";
+import { ticketService, watchTickets } from "./services/ticket.service.js";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import SettingsPage from "./SettingsPage.jsx";
+import CustomerPortal from "./pages/CustomerPortal.jsx";
 import {
   Activity,
   ArrowDownRight,
@@ -48,150 +51,19 @@ import {
 
 const navigation = [
   { label: "Dashboard", title: "Báo cáo", icon: LayoutDashboard },
-  { label: "Unified Inbox", title: "Hộp thư", icon: Inbox, badge: "8" },
+  { label: "Unified Inbox", title: "Hộp thư", icon: Inbox },
   { label: "Ticket List", title: "Danh sách yêu cầu", icon: FileText },
   { label: "Settings", title: "Cài đặt", icon: Settings },
 ];
 
 const teamMembers = [
-  { name: "Võ Thị Thu Lộc", initials: "TL", color: "peach" },
-  { name: "Trương Đình Thảo Đoan", initials: "TĐ", color: "blue" },
   { name: "Võ Ngọc Phú", initials: "NP", color: "mint" },
+  { name: "Võ Thị Thu Lộc", initials: "TL", color: "peach" },
   { name: "Võ Hồng Phúc", initials: "HP", color: "lilac" },
+  { name: "Trương Đình Thảo Đoan", initials: "TĐ", color: "blue" },
 ];
 
-const ticketManagementSamples = [
-  {
-    id: "#TK-2852",
-    subject: "Không thể cập nhật phương thức thanh toán",
-    preview: "Trang thanh toán báo lỗi dù thông tin thẻ vẫn hợp lệ.",
-    customer: "Võ Thị Thu Lộc",
-    initials: "TL",
-    color: "peach",
-    channel: "Email",
-    assignee: "Võ Hồng Phúc",
-    priority: "Cao",
-    status: "Đang mở",
-    time: "5 phút trước",
-  },
-  {
-    id: "#TK-2851",
-    subject: "Cần xuất hóa đơn VAT tháng 9",
-    preview: "Vui lòng bổ sung mã số thuế vào hóa đơn gần nhất.",
-    customer: "Trương Đình Thảo Đoan",
-    initials: "TĐ",
-    color: "blue",
-    channel: "Web Form",
-    assignee: "Võ Thị Thu Lộc",
-    priority: "Trung bình",
-    status: "Đang xử lý",
-    time: "10:42 AM",
-  },
-  {
-    id: "#TK-2850",
-    subject: "Không nhận được mã xác thực đăng nhập",
-    preview: "Mã OTP không đến email sau nhiều lần gửi lại.",
-    customer: "Võ Ngọc Phú",
-    initials: "NP",
-    color: "mint",
-    channel: "Livechat",
-    assignee: "Trương Đình Thảo Đoan",
-    priority: "Cao",
-    status: "Chờ phản hồi",
-    time: "18 phút trước",
-  },
-  {
-    id: "#TK-2849",
-    subject: "Yêu cầu đổi địa chỉ nhận hàng",
-    preview: "Đơn hàng chưa được bàn giao cho đơn vị vận chuyển.",
-    customer: "Trần Văn Hoàng",
-    initials: "TH",
-    color: "blue",
-    channel: "Hotline",
-    assignee: "Võ Ngọc Phú",
-    priority: "Thấp",
-    status: "Đang xử lý",
-    time: "32 phút trước",
-  },
-  {
-    id: "#TK-2848",
-    subject: "Ứng dụng bị treo khi tải báo cáo",
-    preview: "Báo cáo doanh thu không tải xong trên trình duyệt Chrome.",
-    customer: "Nguyễn Minh Anh",
-    initials: "MA",
-    color: "lilac",
-    channel: "Email",
-    assignee: "Võ Hồng Phúc",
-    priority: "Cao",
-    status: "Đang mở",
-    time: "45 phút trước",
-  },
-  {
-    id: "#TK-2847",
-    subject: "Kiểm tra trạng thái hoàn tiền đơn hàng",
-    preview: "Khoản hoàn tiền chưa hiển thị trong sao kê ngân hàng.",
-    customer: "Trần Hoàng Nam",
-    initials: "TN",
-    color: "peach",
-    channel: "Livechat",
-    assignee: "Võ Hồng Phúc",
-    priority: "Trung bình",
-    status: "Đang xử lý",
-    time: "1 giờ trước",
-  },
-  {
-    id: "#TK-2846",
-    subject: "Tài khoản bị khóa sau khi đổi mật khẩu",
-    preview: "Không thể đăng nhập trên ứng dụng di động.",
-    customer: "Phạm Gia Bảo",
-    initials: "GB",
-    color: "blue",
-    channel: "Web Form",
-    assignee: "Võ Thị Thu Lộc",
-    priority: "Cao",
-    status: "Chờ phản hồi",
-    time: "2 giờ trước",
-  },
-  {
-    id: "#TK-2845",
-    subject: "Cập nhật thông tin xuất hóa đơn",
-    preview: "Tên công ty trên hóa đơn chưa đúng với hồ sơ mới.",
-    customer: "Lê Thu Hà",
-    initials: "TH",
-    color: "mint",
-    channel: "Email",
-    assignee: "Võ Ngọc Phú",
-    priority: "Thấp",
-    status: "Đã giải quyết",
-    time: "3 giờ trước",
-  },
-  {
-    id: "#TK-2844",
-    subject: "Không đồng bộ được dữ liệu khách hàng",
-    preview: "Danh sách liên hệ thiếu các bản ghi vừa nhập.",
-    customer: "Đỗ Minh Khang",
-    initials: "MK",
-    color: "peach",
-    channel: "Hotline",
-    assignee: "Trương Đình Thảo Đoan",
-    priority: "Trung bình",
-    status: "Đang xử lý",
-    time: "Hôm qua",
-  },
-  {
-    id: "#TK-2843",
-    subject: "Hướng dẫn thiết lập xác thực hai lớp",
-    preview: "Cần hỗ trợ bật bảo mật hai lớp cho nhóm làm việc.",
-    customer: "Phan Ngọc Mai",
-    initials: "NM",
-    color: "lilac",
-    channel: "Web Form",
-    assignee: "Võ Ngọc Phú",
-    priority: "Thấp",
-    status: "Đã giải quyết",
-    time: "Hôm qua",
-  },
-];
+const ticketManagementSamples = [];
 
 const PerformanceChart = lazy(() =>
   import("./DashboardCharts.jsx").then((charts) => ({
@@ -207,34 +79,34 @@ const MessageSourceChart = lazy(() =>
 const metrics = [
   {
     label: "Tổng số ticket",
-    value: "248",
-    change: "+12,8%",
+    value: "0",
+    change: "0%",
     icon: Inbox,
     tone: "green",
     sparkline: "0,33 18,29 36,31 54,20 72,24 90,15 108,18 126,8 144,10 160,2",
   },
   {
     label: "Ticket đã xong",
-    value: "184",
-    change: "+8,1%",
+    value: "0",
+    change: "đạt chuẩn",
     icon: Check,
     tone: "blue",
     sparkline: "0,29 18,33 36,24 54,26 72,17 90,22 108,12 126,14 144,5 160,8",
   },
   {
     label: "Ticket đang chờ",
-    value: "36",
-    change: "-4,2%",
+    value: "0",
+    change: "Đang trống",
     icon: Clock3,
     tone: "amber",
-    down: true,
+    down: false,
     sparkline: "0,5 18,10 36,8 54,18 72,15 90,24 108,21 126,31 144,28 160,39",
   },
   {
     label: "Thời gian phản hồi TB (SLA)",
-    value: "1,7 giờ",
+    value: "< 2 giờ",
     change: "đạt mục tiêu",
-    footnote: "SLA không quá 2 giờ",
+    footnote: "SLA chuẩn < 2 giờ",
     icon: Activity,
     tone: "coral",
     neutral: true,
@@ -242,218 +114,11 @@ const metrics = [
   },
 ];
 
-const tickets = [
-  {
-    id: "#TK-2841",
-    subject: "Không thể cập nhật thông tin thanh toán",
-    name: "Nguyễn Minh Anh",
-    initials: "MA",
-    color: "lilac",
-    channel: "Email",
-    status: "Ưu tiên cao",
-    tone: "high",
-    time: "4 phút trước",
-    assignee: "Võ Hồng Phúc",
-  },
-  {
-    id: "#TK-2839",
-    subject: "Yêu cầu hoàn tiền đơn hàng #ORD-9381",
-    name: "Trần Hoàng Nam",
-    initials: "TN",
-    color: "peach",
-    channel: "Live chat",
-    status: "Đang xử lý",
-    tone: "progress",
-    time: "18 phút trước",
-    assignee: "Võ Thị Thu Lộc",
-  },
-  {
-    id: "#TK-2836",
-    subject: "Tài khoản bị khóa sau khi đăng nhập",
-    name: "Lê Thu Hà",
-    initials: "TH",
-    color: "mint",
-    channel: "Email",
-    status: "Chờ phản hồi",
-    tone: "waiting",
-    time: "42 phút trước",
-    assignee: "Trương Đình Thảo Đoan",
-  },
-  {
-    id: "#TK-2832",
-    subject: "Hướng dẫn xuất hóa đơn điện tử",
-    name: "Phạm Gia Bảo",
-    initials: "GB",
-    color: "blue",
-    channel: "Điện thoại",
-    status: "Đang xử lý",
-    tone: "progress",
-    time: "1 giờ trước",
-    assignee: "Võ Ngọc Phú",
-  },
-];
+const tickets = [];
 
-const activity = [
-  {
-    initials: "TL",
-    color: "peach",
-    name: "Võ Thị Thu Lộc",
-    action: "đã giải quyết",
-    ticket: "#TK-2828",
-    time: "2 phút trước",
-  },
-  {
-    initials: "NP",
-    color: "mint",
-    name: "Võ Ngọc Phú",
-    action: "đã phản hồi",
-    ticket: "#TK-2836",
-    time: "12 phút trước",
-  },
-  {
-    initials: "HP",
-    color: "lilac",
-    name: "Võ Hồng Phúc",
-    action: "đã nhận yêu cầu",
-    ticket: "#TK-2841",
-    time: "26 phút trước",
-  },
-];
+const activity = [];
 
-const initialConversations = [
-  {
-    id: "#TK-2852",
-    name: "Võ Thị Thu Lộc",
-    initials: "TL",
-    color: "lilac",
-    channel: "Email",
-    preview: "Mình chưa nhận được hóa đơn tháng này.",
-    time: "10:42",
-    unread: true,
-    email: "votthuloc@dtu.edu.vn",
-    phone: "+84 912 345 678",
-    company: "HelpDesk Pro",
-    status: "pending",
-    priority: "Cao",
-    assignee: "Võ Hồng Phúc",
-    messages: [
-      {
-        sender: "customer",
-        time: "10:18",
-        text: "Chào đội ngũ hỗ trợ, mình cần kiểm tra hóa đơn tháng này.",
-      },
-      {
-        sender: "customer",
-        time: "10:19",
-        text: "Mình chưa nhận được hóa đơn tháng này dù thanh toán đã hoàn tất.",
-      },
-      {
-        sender: "agent",
-        time: "10:31",
-        text: "Chào Thu Lộc, mình đang kiểm tra giao dịch và sẽ gửi lại hóa đơn cho bạn ngay nhé.",
-      },
-      {
-        sender: "customer",
-        time: "10:42",
-        text: "Cảm ơn bạn. Mình cần hóa đơn trước cuối ngày hôm nay.",
-      },
-    ],
-  },
-  {
-    id: "#TK-2847",
-    name: "Trương Đình Thảo Đoan",
-    initials: "TĐ",
-    color: "peach",
-    channel: "Telegram",
-    preview: "Cho mình hỏi đơn hàng đã được gửi chưa?",
-    time: "10:26",
-    unread: true,
-    email: "thaodoan29082005@gmail.com",
-    phone: "+84 903 222 410",
-    company: "Khách hàng cá nhân",
-    status: "pending",
-    priority: "Vừa",
-    assignee: "Võ Thị Thu Lộc",
-    messages: [
-      {
-        sender: "customer",
-        time: "10:12",
-        text: "Xin chào, mình muốn kiểm tra tình trạng đơn hàng #ORD-9412.",
-      },
-      {
-        sender: "agent",
-        time: "10:19",
-        text: "Mình đang tra cứu đơn hàng giúp bạn nhé.",
-      },
-      {
-        sender: "customer",
-        time: "10:26",
-        text: "Cho mình hỏi đơn hàng đã được gửi chưa?",
-      },
-    ],
-  },
-  {
-    id: "#TK-2844",
-    name: "Võ Ngọc Phú",
-    initials: "NP",
-    color: "mint",
-    channel: "Web Form",
-    preview: "Tôi muốn cập nhật địa chỉ nhận hàng.",
-    time: "09:58",
-    unread: false,
-    email: "vongocphu136@gmail.com",
-    phone: "+84 987 654 321",
-    company: "Khách hàng cá nhân",
-    status: "pending",
-    priority: "Thấp",
-    assignee: "Võ Ngọc Phú",
-    messages: [
-      {
-        sender: "customer",
-        time: "09:46",
-        text: "Tôi muốn cập nhật địa chỉ nhận hàng cho đơn hàng tiếp theo.",
-      },
-      {
-        sender: "agent",
-        time: "09:58",
-        text: "Chào anh Phú, anh có thể gửi địa chỉ mới để mình cập nhật giúp anh nhé.",
-      },
-    ],
-  },
-  {
-    id: "#TK-2841",
-    name: "Trần Văn Hoàng",
-    initials: "TH",
-    color: "blue",
-    channel: "Email",
-    preview: "Cảm ơn, vấn đề đã được giải quyết rồi.",
-    time: "09:32",
-    unread: false,
-    email: "hoangtran246@gmail.com",
-    phone: "+84 908 111 246",
-    company: "HelpDesk Pro",
-    status: "done",
-    priority: "Vừa",
-    assignee: "Trương Đình Thảo Đoan",
-    messages: [
-      {
-        sender: "customer",
-        time: "09:14",
-        text: "Tôi không thể đăng nhập sau khi đổi mật khẩu.",
-      },
-      {
-        sender: "agent",
-        time: "09:22",
-        text: "Mình đã gửi hướng dẫn đặt lại phiên đăng nhập đến email của bạn.",
-      },
-      {
-        sender: "customer",
-        time: "09:32",
-        text: "Cảm ơn, vấn đề đã được giải quyết rồi.",
-      },
-    ],
-  },
-];
+const initialConversations = [];
 
 function getTeamMember(identity) {
   return (
@@ -469,406 +134,744 @@ function ChannelIcon({ channel, size = 14 }) {
   return <Icon size={size} aria-hidden="true" />;
 }
 
+function formatRelativeTime(dateInput) {
+  if (!dateInput) return "Vừa xong";
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return "Vừa xong";
+  const diffMs = Date.now() - d.getTime();
+  if (diffMs < 0) return "Vừa xong";
+  const diffSec = Math.floor(diffMs / 1000);
+  if (diffSec < 60) return "Vừa xong";
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin} phút trước`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours} giờ trước`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays} ngày trước`;
+}
+
+function formatClockTime(dateInput) {
+  if (!dateInput) {
+    const now = new Date();
+    return now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+  }
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return "Vừa xong";
+  return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+}
+
+function formatDateHeader(dateInput) {
+  const d = dateInput ? new Date(dateInput) : new Date();
+  const timeStr = formatClockTime(d);
+  const now = new Date();
+  const isToday = d.toDateString() === now.toDateString();
+  if (isToday) {
+    return `HÔM NAY, ${timeStr}`;
+  }
+  const dateStr = `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+  return `${dateStr}, ${timeStr}`;
+}
+
+function calculateSla(dateInput, isUrgent) {
+  if (!dateInput) return { sla: isUrgent ? "Còn 30 phút" : "Còn 2 giờ", slaPercent: 80 };
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return { sla: isUrgent ? "Còn 30 phút" : "Còn 2 giờ", slaPercent: 80 };
+  const totalMinutes = isUrgent ? 30 : 120;
+  const elapsedMinutes = Math.max(0, Math.floor((Date.now() - d.getTime()) / 60000));
+  const remainingMinutes = totalMinutes - elapsedMinutes;
+  if (remainingMinutes <= 0) {
+    return { sla: "Quá hạn SLA", slaPercent: 100 };
+  }
+  const percent = Math.min(100, Math.round(((totalMinutes - remainingMinutes) / totalMinutes) * 100));
+  if (remainingMinutes < 60) {
+    return { sla: `Còn ${remainingMinutes} phút`, slaPercent: percent };
+  }
+  const hours = Math.floor(remainingMinutes / 60);
+  const mins = remainingMinutes % 60;
+  return { sla: `Còn ${hours} giờ ${mins > 0 ? `${mins}p` : ""}`.trim(), slaPercent: percent };
+}
+
+const unifiedTickets = [];
+
+const currentAgent = "Võ Ngọc Phú";
+
+function TicketFeedStatus({ state }) {
+  if (state === "ready") return null;
+  return <p className="ticket-feed-status" role="status">
+    {state === "loading" ? "Đang tải yêu cầu…" : "Chưa cập nhật được dữ liệu. Hệ thống sẽ tự thử lại."}
+  </p>;
+}
+
+function TriageBadge({ ticket }) {
+  return <span
+    className={"unified-sentiment sentiment-" + (ticket.sentiment || ticket.aiStatus || "skipped")}
+    title={ticket.aiReason || ticket.sentimentLabel || "Chưa phân tích AI"}
+  >
+    {ticket.sentimentLabel || "Chưa phân tích AI"}
+    {ticket.sentimentScore != null && <strong>{ticket.sentimentScore}</strong>}
+  </span>;
+}
+
+function TriageDetails({ ticket }) {
+  return <section className="ticket-detail-panel ai-triage-details" aria-label="Kết quả phân tích AI">
+    <h3><Sparkles size={15} /> Kết quả phân tích AI</h3>
+    <TriageBadge ticket={ticket} />
+    {ticket.aiReason && <p>{ticket.aiReason}</p>}
+    {ticket.urgencyScore != null && <p>Mức khẩn cấp AI đánh giá · {ticket.urgencyScore}</p>}
+    {ticket.aiKeywords?.length > 0 && <p>Dấu hiệu nhận diện · {ticket.aiKeywords.join(" · ")}</p>}
+    {ticket.aiModel && <p className="ai-model-name">Model · {ticket.aiModel}</p>}
+    {ticket.isAiBumped && <p className="ai-bump-label">AI đã nâng ưu tiên lên khẩn cấp</p>}
+  </section>;
+}
+
 function InboxScreen({ initialQuery = "" }) {
-  const [conversations, setConversations] = useState(initialConversations);
-  const [selectedId, setSelectedId] = useState(initialConversations[0].id);
+  const [feedState, setFeedState] = useState("loading");
+  const [ticketList, setTicketList] = useState([]);
   const [query, setQuery] = useState(initialQuery);
-  const [filter, setFilter] = useState("Tất cả");
+  const [activeFilter, setActiveFilter] = useState("Tất cả");
+  const [selectedTicketId, setSelectedTicketId] = useState(null);
+  const [assignedTickets, setAssignedTickets] = useState({});
+  const [ticketStatuses, setTicketStatuses] = useState({});
+  const [repliesByTicket, setRepliesByTicket] = useState({});
   const [draft, setDraft] = useState("");
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [mobileChatOpen, setMobileChatOpen] = useState(false);
+  const [aiDraftOpen, setAiDraftOpen] = useState(true);
+  const [attachmentName, setAttachmentName] = useState("");
+  const attachmentRef = useRef(null);
+  const timelineEndRef = useRef(null);
+
+  useEffect(() => {
+    if (selectedTicketId) {
+      timelineEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [selectedTicketId, repliesByTicket]);
+
   useEffect(() => setQuery(initialQuery), [initialQuery]);
-  const selected = conversations.find(
-    (conversation) => conversation.id === selectedId,
-  );
-  const selectedAssignee = getTeamMember(selected?.assignee);
-  const visibleConversations = conversations.filter((conversation) => {
+
+  useEffect(() => watchTickets(
+    { limit: 50 },
+    (items) => {
+            const mapped = items.map((rt) => {
+              const custName =
+                rt.customer?.full_name ||
+                rt.customer_name ||
+                rt.customer?.name ||
+                "Khách hàng";
+              const rawInitials = custName
+                ? custName
+                    .trim()
+                    .split(/\s+/)
+                    .map((w) => w[0])
+                    .slice(-2)
+                    .join("")
+                    .toUpperCase()
+                : "KH";
+              const firstMsg =
+                rt.description ||
+                rt.messages?.[0]?.content ||
+                rt.messages?.[rt.messages.length - 1]?.content ||
+                "";
+              const attachment =
+                rt.messages?.[0]?.attachments ||
+                rt.messages?.find((m) => m.attachments)?.attachments ||
+                rt.attachment_url ||
+                null;
+              return {
+                ...getTicketTriage(rt),
+                id: rt.ticket_code || rt.id || `#TK-${String(rt.id).slice(0, 4)}`,
+                customer: custName,
+                initials: rawInitials || "KH",
+                email: rt.customer?.email || rt.customer_email || "customer@example.com",
+                phone: rt.customer?.phone || rt.customer_phone || "+84 900 000 000",
+                company: rt.customer?.company || "Khách hàng cá nhân",
+                plan: rt.customer?.plan || "Gói tiêu chuẩn",
+                subject: rt.subject || "Yêu cầu hỗ trợ",
+                channel:
+                  rt.channel?.channel_type === "telegram" || rt.channel_type === "telegram"
+                    ? "Telegram"
+                    : rt.channel?.channel_type === "email" || rt.channel_type === "email"
+                      ? "Email"
+                      : "Web Form",
+                channelTone:
+                  rt.channel?.channel_type === "telegram" || rt.channel_type === "telegram"
+                    ? "indigo"
+                    : rt.channel?.channel_type === "email" || rt.channel_type === "email"
+                      ? "sky"
+                      : "teal",
+                priority: rt.is_urgent_bumped
+                  ? "🔥 AI Urgent (Priority Bump)"
+                  : rt.priority === "urgent"
+                    ? "Khẩn cấp"
+                    : rt.priority === "high"
+                      ? "High"
+                      : "Normal",
+                priorityTone:
+                  rt.is_urgent_bumped || rt.priority === "urgent"
+                    ? "urgent"
+                    : rt.priority === "high"
+                      ? "high"
+                      : "normal",
+                assignee: rt.assigned_agent?.full_name || rt.assignee?.name || rt.assignee_name || "",
+                status: getTicketStatus(rt.status),
+                created_at: rt.created_at || new Date().toISOString(),
+                time: formatRelativeTime(rt.created_at),
+                sla: calculateSla(rt.created_at, rt.is_urgent_bumped || rt.priority === "urgent").sla,
+                slaPercent: calculateSla(rt.created_at, rt.is_urgent_bumped || rt.priority === "urgent").slaPercent,
+                preview: firstMsg ? (firstMsg.slice(0, 75) + "...") : (rt.subject || "Yêu cầu hỗ trợ"),
+                message: firstMsg || rt.subject || "Khách hàng không để lại nội dung chi tiết.",
+                attachment,
+                draftReply:
+                  rt.ai_draft_reply ||
+                  "Chào bạn, cảm ơn bạn đã gửi yêu cầu. Chúng tôi đang xử lý và sẽ phản hồi sớm nhất có thể.",
+              };
+            });
+setTicketList(mapped);
+setFeedState("ready");
+}, () => setFeedState("error"),
+), []);
+
+  const selectedTicket = ticketList.find((t) => t.id === selectedTicketId);
+  const selectedStatus = selectedTicket
+    ? ticketStatuses[selectedTicket.id] ?? selectedTicket.status
+    : "OPEN";
+
+  const visibleTickets = ticketList.filter((ticket) => {
+    const assignedTo = assignedTickets[ticket.id] ?? ticket.assignee;
     const matchesQuery =
-      `${conversation.name} ${conversation.preview} ${conversation.id}`
+      `${ticket.id} ${ticket.customer} ${ticket.subject} ${ticket.channel}`
         .toLowerCase()
         .includes(query.toLowerCase());
-    return matchesQuery && (filter !== "Chưa đọc" || conversation.unread);
+    const matchesFilter =
+      activeFilter === "Khẩn cấp"
+        ? ticket.priorityTone === "urgent"
+        : activeFilter === "Chưa phân công"
+          ? !assignedTo
+          : activeFilter === "Của tôi"
+            ? assignedTo === currentAgent
+            : true;
+    return matchesQuery && matchesFilter;
   });
-
-  const updateSelected = (updates) => {
-    setConversations((current) =>
-      current.map((conversation) =>
-        conversation.id === selectedId
-          ? { ...conversation, ...updates }
-          : conversation,
-      ),
-    );
-  };
-
-  const selectConversation = (conversation) => {
-    setSelectedId(conversation.id);
-    setMobileChatOpen(true);
-    setDetailsOpen(false);
-    setConversations((current) =>
-      current.map((item) =>
-        item.id === conversation.id ? { ...item, unread: false } : item,
-      ),
-    );
-  };
 
   const sendReply = (event) => {
     event.preventDefault();
-    const text = draft.trim();
-    if (!text) return;
-    setConversations((current) =>
-      current.map((conversation) =>
-        conversation.id === selectedId
-          ? {
-              ...conversation,
-              preview: text,
-              time: "Vừa xong",
-              messages: [
-                ...conversation.messages,
-                { sender: "agent", time: "Vừa xong", text },
-              ],
-            }
-          : conversation,
-      ),
-    );
+    if (!draft.trim()) return;
+    setRepliesByTicket((current) => ({
+      ...current,
+      [selectedTicketId]: [...(current[selectedTicketId] ?? []), draft.trim()],
+    }));
     setDraft("");
+    setAttachmentName("");
+  };
+
+  const assignToMe = () => {
+    if (!selectedTicket) return;
+    setAssignedTickets((current) => ({
+      ...current,
+      [selectedTicket.id]: currentAgent,
+    }));
+  };
+
+  const handleAssignChange = (newAssignee) => {
+    if (!selectedTicket) return;
+    setAssignedTickets((current) => ({
+      ...current,
+      [selectedTicket.id]: newAssignee,
+    }));
   };
 
   return (
-    <section
-      className={`inbox-layout ${detailsOpen ? "details-open" : ""} ${mobileChatOpen ? "mobile-chat-open" : ""}`}
-    >
-      <aside className="inbox-queue" aria-label="Danh sách tin nhắn">
-        <div className="queue-heading">
-          <div>
-            <h1>Hộp thư đến</h1>
-            <p>
-              {
-                conversations.filter((conversation) => conversation.unread)
-                  .length
-              }{" "}
-              tin nhắn chưa đọc
-            </p>
-          </div>
-          <button
-            className="icon-button queue-compose"
-            aria-label="Tạo tin nhắn mới"
-          >
-            <Plus size={18} />
-          </button>
-        </div>
-        <label className="queue-search">
-          <Search size={16} />
-          <input
-            aria-label="Tìm trong hộp thư"
-            placeholder="Tìm tên hoặc nội dung..."
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-          {query && (
-            <button
-              type="button"
-              aria-label="Xóa tìm kiếm"
-              onClick={() => setQuery("")}
-            >
-              <X size={14} />
-            </button>
-          )}
-        </label>
-        <div className="queue-filters" role="group" aria-label="Lọc tin nhắn">
-          {["Tất cả", "Chưa đọc"].map((item) => (
-            <button
-              key={item}
-              className={filter === item ? "queue-filter-active" : ""}
-              onClick={() => setFilter(item)}
-            >
-              {item}
-              {item === "Tất cả" && <span>{conversations.length}</span>}
-            </button>
-          ))}
-        </div>
-        <div className="conversation-list">
-          {visibleConversations.map((conversation) => (
-            <button
-              key={conversation.id}
-              className={`conversation-row ${selectedId === conversation.id ? "conversation-row-active" : ""}`}
-              onClick={() => selectConversation(conversation)}
-            >
-              <Avatar
-                initials={conversation.initials}
-                color={conversation.color}
-              />
-              <span className="conversation-row-copy">
-                <span className="conversation-row-top">
-                  <strong>{conversation.name}</strong>
-                  <time>{conversation.time}</time>
-                </span>
-                <span className="conversation-row-preview">
-                  {conversation.preview}
-                </span>
-                <span className="conversation-row-bottom">
-                  <span
-                    className={`channel-label channel-${conversation.channel.toLowerCase().replace(" ", "-")}`}
-                  >
-                    <ChannelIcon channel={conversation.channel} />{" "}
-                    {conversation.channel}
-                  </span>
-                  <span className="conversation-ticket">{conversation.id}</span>
-                  {conversation.unread && (
-                    <i className="unread-dot" aria-label="Chưa đọc" />
-                  )}
-                </span>
-              </span>
-            </button>
-          ))}
-          {visibleConversations.length === 0 && (
-            <p className="queue-empty">Không tìm thấy hội thoại phù hợp.</p>
-          )}
-        </div>
-        <div className="queue-footer">
-          <span className="online-indicator" /> Đồng bộ trực tiếp
-        </div>
-      </aside>
-
-      {selected && (
-        <main className="inbox-conversation">
-          <header className="conversation-header">
-            <button
-              className="icon-button conversation-back"
-              aria-label="Quay lại danh sách"
-              onClick={() => setMobileChatOpen(false)}
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <Avatar initials={selected.initials} color={selected.color} />
-            <div className="conversation-contact">
-              <strong>{selected.name}</strong>
-              <span>
-                <i /> Đang hoạt động
-              </span>
+    <section className="unified-inbox">
+      {!selectedTicket ? (
+        <div className="unified-queue">
+          <div className="unified-queue-heading">
+            <div>
+              <span className="inbox-eyebrow">CUSTOMER SUPPORT / INBOX</span>
+              <h1>Unified Inbox Queue</h1>
+              <p>Ưu tiên những cuộc hội thoại cần được xử lý ngay.</p>
             </div>
-            <span className="conversation-header-channel">
-              <ChannelIcon channel={selected.channel} /> {selected.channel}
-            </span>
-            <div className="conversation-tools">
+            <div className="queue-live-status">
+              <i /> Live queue <span>{ticketList.length} tickets</span>
+            </div>
+          </div>
+          <div className="unified-queue-toolbar">
+            <div className="unified-filter-tabs" role="tablist" aria-label="Lọc hàng đợi">
+              {[
+                ["Tất cả", String(ticketList.length)],
+                [
+                  "Khẩn cấp",
+                  String(ticketList.filter((t) => t.priorityTone === "urgent").length),
+                ],
+                [
+                  "Chưa phân công",
+                  String(
+                    ticketList.filter(
+                      (t) => !(assignedTickets[t.id] ?? t.assignee),
+                    ).length,
+                  ),
+                ],
+                [
+                  "Của tôi",
+                  String(
+                    ticketList.filter(
+                      (t) => (assignedTickets[t.id] ?? t.assignee) === currentAgent,
+                    ).length,
+                  ),
+                ],
+              ].map(([label, count]) => (
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeFilter === label}
+                  className={activeFilter === label ? "unified-filter-active" : ""}
+                  key={label}
+                  onClick={() => setActiveFilter(label)}
+                >
+                  {label === "Khẩn cấp" && <span aria-hidden="true">🔥 </span>}
+                  {label} <span className="unified-filter-count">{count}</span>
+                </button>
+              ))}
+            </div>
+            <label className="unified-queue-search">
+              <Search size={16} aria-hidden="true" />
+              <input
+                aria-label="Tìm trong hàng đợi"
+                placeholder="Tìm vé, khách hàng..."
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+            </label>
+          </div>
+          <TicketFeedStatus state={feedState} />
+          <div className="unified-ticket-list">
+            {visibleTickets.map((ticket) => {
+              const assignedPerson = assignedTickets[ticket.id] ?? ticket.assignee;
+              const member = getTeamMember(assignedPerson);
+              return (
+                <button
+                  type="button"
+                  className={`unified-ticket-card ${
+                    ticket.priorityTone === "urgent" ? "unified-ticket-urgent" : ""
+                  }`}
+                  key={ticket.id}
+                  onClick={() => {
+                    setSelectedTicketId(ticket.id);
+                    setAiDraftOpen(true);
+                  }}
+                >
+                  <span className="unified-ticket-topline">
+                    <span className="unified-ticket-id">{ticket.id}</span>
+                    <span
+                      className={`unified-channel-badge channel-tone-${ticket.channelTone}`}
+                    >
+                      {ticket.channel === "Email" ? (
+                        <Mail size={13} />
+                      ) : ticket.channel === "Telegram" ? (
+                        <Send size={13} />
+                      ) : (
+                        <Globe2 size={13} />
+                      )}
+                      {ticket.channel}
+                    </span>
+                    <time>{ticket.time}</time>
+                    <MoreHorizontal size={17} aria-hidden="true" />
+                  </span>
+                  <span className="unified-ticket-person">
+                    <Avatar
+                      initials={ticket.initials}
+                      color={ticket.priorityTone === "urgent" ? "peach" : "mint"}
+                    />
+                    <strong>{ticket.customer}</strong>
+                  </span>
+                  <span className="unified-ticket-subject">{ticket.subject}</span>
+                  <span className="unified-ticket-preview">{ticket.preview}</span>
+                  <span className="unified-ticket-bottom">
+                    <span
+                      className={`unified-priority-badge priority-tone-${ticket.priorityTone}`}
+                    >
+                      {ticket.priority}
+                    </span>
+                    <TriageBadge ticket={ticket} />
+                    <span className="unified-ticket-assignee">
+                      <Avatar
+                        initials={assignedPerson ? member.initials : "?"}
+                        color={assignedPerson ? member.color : "slate"}
+                        small
+                      />
+                      {assignedPerson || "Chưa phân công"}
+                    </span>
+                    <span
+                      className={`unified-ticket-status ${
+                        (ticketStatuses[ticket.id] ?? ticket.status) === "CLOSED"
+                          ? "is-closed"
+                          : ""
+                      }`}
+                    >
+                      <i /> {ticketStatuses[ticket.id] ?? ticket.status}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+            {visibleTickets.length === 0 && (
+              <div className="unified-empty-state" style={{ padding: "3.5rem 1.5rem", textAlign: "center", color: "#6b7280" }}>
+                <Inbox size={42} style={{ margin: "0 auto 12px", opacity: 0.4, color: "#10b981" }} />
+                <h3 style={{ fontSize: "16px", fontWeight: "600", color: "#1f2937", marginBottom: "6px" }}>
+                  Hàng đợi hiện đang trống
+                </h3>
+                <p style={{ fontSize: "13px", maxWidth: "420px", margin: "0 auto", lineHeight: "1.5" }}>
+                  Chưa có yêu cầu hỗ trợ nào trong hệ thống. Khi khách hàng gửi yêu cầu qua Web Portal, Email hoặc Telegram, vé mới sẽ tự động hiển thị tại đây.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="ticket-detail-view">
+          <header className="ticket-detail-header">
+            <div className="ticket-detail-title">
               <button
-                className="icon-button details-toggle"
-                aria-label="Thông tin khách hàng"
-                onClick={() => setDetailsOpen(!detailsOpen)}
+                type="button"
+                className="detail-back-button"
+                onClick={() => setSelectedTicketId(null)}
               >
-                <UserRound size={17} />
+                <ChevronLeft size={17} /> Quay lại
               </button>
-              <button className="icon-button" aria-label="Tùy chọn hội thoại">
-                <MoreHorizontal size={19} />
+              <div>
+                <span className="inbox-eyebrow">
+                  TICKET DETAIL / {selectedTicket.channel.toUpperCase()}
+                </span>
+                <h1>
+                  <span>{selectedTicket.id}</span> —{" "}
+                  {selectedTicket.subject.replace("...", "")}
+                </h1>
+              </div>
+            </div>
+            <div className="ticket-detail-actions">
+              <span
+                className={`detail-status-pill ${
+                  selectedStatus === "CLOSED" ? "detail-status-closed" : ""
+                }`}
+              >
+                <i /> {selectedStatus}
+              </span>
+              <span
+                className={`detail-priority-pill ${
+                  selectedTicket.priorityTone !== "urgent"
+                    ? "detail-priority-other"
+                    : ""
+                }`}
+              >
+                <i /> PRIORITY:{" "}
+                {selectedTicket.priorityTone === "urgent"
+                  ? "URGENT"
+                  : selectedTicket.priority.toUpperCase()}
+              </span>
+              <button
+                type="button"
+                className="detail-assign-button"
+                onClick={assignToMe}
+              >
+                <UserRound size={15} />{" "}
+                {assignedTickets[selectedTicket.id]
+                  ? "Đã phân công"
+                  : "Phân công cho tôi"}
+              </button>
+              <button
+                type="button"
+                className="detail-status-button"
+                onClick={() =>
+                  setTicketStatuses((current) => ({
+                    ...current,
+                    [selectedTicket.id]:
+                      selectedStatus === "OPEN" ? "CLOSED" : "OPEN",
+                  }))
+                }
+              >
+                {selectedStatus === "OPEN" ? "Đổi trạng thái" : "Mở lại vé"}{" "}
+                <ChevronDown size={14} />
               </button>
             </div>
           </header>
-          <div className="ticket-subject">
-            <span className="subject-ticket-id">{selected.id}</span>
-            <strong>{selected.preview}</strong>
-          </div>
-          <div className="message-history" aria-live="polite">
-            <div className="message-date">Hôm nay, 1 tháng 10</div>
-            {selected.messages.map((message, index) => (
-              <div
-                className={`message-line message-${message.sender}`}
-                key={`${selected.id}-${index}`}
-              >
-                {message.sender === "customer" && (
-                  <Avatar
-                    initials={selected.initials}
-                    color={selected.color}
-                    small
-                  />
-                )}
-                <div className="message-body">
-                  <p>{message.text}</p>
+
+          <div className="ticket-detail-content">
+            {/* CỘT TRÁI: TIMELINE HỘI THOẠI & SOẠN THẢO */}
+            <div className="ticket-detail-main">
+              <div className="ticket-timeline">
+                <div className="timeline-date">
+                  <span /> {formatDateHeader(selectedTicket.created_at)} <span />
+                </div>
+                <article className="customer-message">
+                  <Avatar initials={selectedTicket.initials} color="peach" />
+                  <div className="customer-message-content">
+                    <div className="customer-message-meta">
+                      <strong>{selectedTicket.customer}</strong>
+                      <time>{formatClockTime(selectedTicket.created_at)} · {selectedTicket.channel}</time>
+                    </div>
+                    <div className="customer-message-bubble">
+                      <p>
+                        {selectedTicket.message ||
+                          selectedTicket.preview ||
+                          selectedTicket.subject ||
+                          "Khách hàng không để lại nội dung chi tiết."}
+                      </p>
+                      {selectedTicket.attachment && (
+                        <div
+                          className="customer-attachment-card"
+                          aria-label="Tệp đính kèm của khách hàng"
+                        >
+                          <div className="customer-attachment-head">
+                            <Paperclip size={14} />
+                            <span>TỆP ĐÍNH KÈM TỪ KHÁCH HÀNG</span>
+                          </div>
+                          {selectedTicket.attachment.startsWith("data:image/") ||
+                          /\.(png|jpe?g|gif|webp)(\?.*)?$/i.test(selectedTicket.attachment) ||
+                          (selectedTicket.attachment.startsWith("http") && !selectedTicket.attachment.endsWith(".pdf")) ? (
+                            <a
+                              href={selectedTicket.attachment}
+                              target="_blank"
+                              rel="noreferrer"
+                              title="Bấm để xem ảnh kích thước gốc"
+                              className="customer-attachment-img-wrap"
+                            >
+                              <img
+                                src={selectedTicket.attachment}
+                                alt="Ảnh đính kèm"
+                                className="customer-attachment-img"
+                              />
+                            </a>
+                          ) : (
+                            <div className="customer-attachment-file-wrap">
+                              <FileText size={18} />
+                              <span>{selectedTicket.attachment}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <span className="customer-message-time">{formatClockTime(selectedTicket.created_at)}</span>
+                  </div>
+                </article>
+                {(repliesByTicket[selectedTicket.id] ?? []).map((reply, index) => (
+                  <article
+                    className="agent-message"
+                    key={`${selectedTicket.id}-reply-${index}`}
+                  >
+                    <div className="agent-message-bubble">
+                      <p>{reply}</p>
+                      <time>Vừa xong · Đã gửi</time>
+                    </div>
+                  </article>
+                ))}
+                <div className="timeline-system-note" role="status">
+                  <Sparkles size={14} /><TriageBadge ticket={selectedTicket} />
+                  {selectedTicket.isAiBumped && " · AI đã nâng ưu tiên lên khẩn cấp"}
+                </div>
+                <div className="ticket-context-note">
+                  <Clock3 size={15} />
                   <span>
-                    {message.time}
-                    {message.sender === "agent" && <CheckCheck size={13} />}
+                    <strong>
+                      {formatRelativeTime(selectedTicket.created_at) === "Vừa xong"
+                        ? "Vé vừa mới được tạo"
+                        : `Vé được tạo ${formatRelativeTime(selectedTicket.created_at)}`}
+                    </strong>
+                    <small>
+                      {(repliesByTicket[selectedTicket.id] ?? []).length > 0
+                        ? "Đã có phản hồi từ nhân viên CSKH"
+                        : "Khách hàng đang chờ phản hồi đầu tiên"}
+                    </small>
                   </span>
                 </div>
+                <div ref={timelineEndRef} />
               </div>
-            ))}
-          </div>
-          <form className="reply-composer" onSubmit={sendReply}>
-            <textarea
-              aria-label="Soạn phản hồi"
-              placeholder={`Trả lời ${selected.name}...`}
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey) {
-                  event.preventDefault();
-                  event.currentTarget.form.requestSubmit();
-                }
-              }}
-            />
-            <div className="composer-actions">
-              <div>
-                <button
-                  type="button"
-                  className="icon-button"
-                  aria-label="Đính kèm tệp"
-                >
-                  <Paperclip size={17} />
-                </button>
-                <button
-                  type="button"
-                  className="icon-button"
-                  aria-label="Chèn biểu tượng cảm xúc"
-                >
-                  <Smile size={17} />
-                </button>
-                <span className="composer-hint">
-                  Enter để gửi · Shift + Enter xuống dòng
-                </span>
-              </div>
-              <button
-                className="send-reply"
-                type="submit"
-                disabled={!draft.trim()}
-                aria-label="Gửi phản hồi"
-              >
-                <span>Gửi phản hồi</span>
-                <Send size={15} />
-              </button>
-            </div>
-          </form>
-        </main>
-      )}
 
-      {selected && (
-        <aside className="customer-details" aria-label="Thông tin khách hàng">
-          <div className="details-heading">
-            <h2>Thông tin</h2>
-            <button
-              className="icon-button details-close"
-              aria-label="Đóng thông tin khách hàng"
-              onClick={() => setDetailsOpen(false)}
-            >
-              <X size={17} />
-            </button>
-          </div>
-          <div className="customer-profile">
-            <Avatar initials={selected.initials} color={selected.color} />
-            <strong>{selected.name}</strong>
-            <span>Khách hàng từ tháng 3, 2024</span>
-          </div>
-          <div className="customer-contact-list">
-            <div>
-              <Mail size={15} />
-              <span>
-                <small>Email</small>
-                <strong>{selected.email}</strong>
-              </span>
-            </div>
-            <div>
-              <MessageCircle size={15} />
-              <span>
-                <small>Điện thoại</small>
-                <strong>{selected.phone}</strong>
-              </span>
-            </div>
-            <div>
-              <Globe2 size={15} />
-              <span>
-                <small>Tổ chức</small>
-                <strong>{selected.company}</strong>
-              </span>
-            </div>
-          </div>
-          <div className="details-divider" />
-          <section className="ticket-properties">
-            <h3>Thuộc tính ticket</h3>
-            <div className="property-group">
-              <span>Trạng thái</span>
-              <div
-                className="status-switch"
-                role="group"
-                aria-label="Trạng thái ticket"
-              >
+              <div className="ticket-reply-area">
+                {aiDraftOpen && (
+                  <aside
+                    className="ai-auto-draft-card"
+                    aria-label="AI Auto-Draft Card"
+                  >
+                    <div className="ai-draft-heading">
+                      <span className="ai-draft-icon">
+                        <Sparkles size={16} />
+                      </span>
+                      <span>
+                        <strong>AI Auto-Draft</strong>
+                        <small>Gợi ý phản hồi · Chuyên nghiệp, đồng cảm</small>
+                      </span>
+                      <button
+                        type="button"
+                        aria-label="Đóng bản nháp AI"
+                        onClick={() => setAiDraftOpen(false)}
+                      >
+                        <X size={15} />
+                      </button>
+                    </div>
+                    <p>{selectedTicket.draftReply}</p>
+                    <button
+                      type="button"
+                      className="ai-apply-button"
+                      onClick={() => {
+                        setDraft(selectedTicket.draftReply);
+                        setAiDraftOpen(false);
+                      }}
+                    >
+                      <Sparkles size={15} /> 1-Click Apply &amp; Insert
+                    </button>
+                  </aside>
+                )}
                 <button
-                  className={
-                    selected.status === "pending" ? "status-selected" : ""
-                  }
-                  onClick={() => updateSelected({ status: "pending" })}
+                  type="button"
+                  className="generate-ai-draft"
+                  onClick={() => setAiDraftOpen((open) => !open)}
                 >
-                  <Clock3 size={13} /> Chờ xử lý
+                  <Sparkles size={15} /> Generate AI Draft Reply
                 </button>
-                <button
-                  className={
-                    selected.status === "done"
-                      ? "status-selected status-done"
-                      : ""
-                  }
-                  onClick={() => updateSelected({ status: "done" })}
-                >
-                  <Check size={13} /> Đã xong
-                </button>
+                <form className="unified-reply-composer" onSubmit={sendReply}>
+                  <textarea
+                    aria-label="Soạn phản hồi"
+                    placeholder={`Trả lời ${selectedTicket.customer}...`}
+                    value={draft}
+                    onChange={(event) => setDraft(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" && !event.shiftKey) {
+                        event.preventDefault();
+                        event.currentTarget.form.requestSubmit();
+                      }
+                    }}
+                  />
+                  {attachmentName && (
+                    <span className="composer-attachment-name">
+                      <Paperclip size={13} /> {attachmentName}
+                    </span>
+                  )}
+                  <input
+                    ref={attachmentRef}
+                    type="file"
+                    className="composer-file-input"
+                    onChange={(event) =>
+                      setAttachmentName(event.target.files?.[0]?.name ?? "")
+                    }
+                  />
+                  <div className="unified-composer-actions">
+                    <button
+                      type="button"
+                      className="unified-attach-button"
+                      aria-label="Đính kèm file"
+                      onClick={() => attachmentRef.current?.click()}
+                    >
+                      <Paperclip size={17} />
+                    </button>
+                    <span className="unified-composer-hint">
+                      Enter để gửi · Shift + Enter xuống dòng
+                    </span>
+                    <button
+                      type="submit"
+                      className="unified-send-button"
+                      disabled={!draft.trim()}
+                    >
+                      <span>Send Reply</span>
+                      <Send size={15} />
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
-            <label className="property-group">
-              <span>Độ ưu tiên</span>
-              <select
-                className={`priority-select priority-${selected.priority.toLowerCase()}`}
-                value={selected.priority}
-                onChange={(event) =>
-                  updateSelected({ priority: event.target.value })
-                }
-              >
-                <option>Cao</option>
-                <option>Vừa</option>
-                <option>Thấp</option>
-              </select>
-            </label>
-            <label className="property-group">
-              <span>Người phụ trách</span>
-              <span className="assignee-select-wrap">
-                <Avatar
-                  initials={selectedAssignee.initials}
-                  color={selectedAssignee.color}
-                  small
-                  title={selectedAssignee.name}
-                />
-                <select
-                  aria-label="Chọn người phụ trách"
-                  value={selected.assignee}
-                  onChange={(event) =>
-                    updateSelected({ assignee: event.target.value })
-                  }
-                >
-                  {teamMembers.map((member) => (
-                    <option key={member.initials} value={member.name}>
-                      {member.name}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={14} />
-              </span>
-            </label>
-          </section>
-          <div className="details-divider" />
-          <section className="ticket-context">
-            <h3>Ticket hiện tại</h3>
-            <div>
-              <span>Mã yêu cầu</span>
-              <strong>{selected.id}</strong>
-            </div>
-            <div>
-              <span>Kênh tiếp nhận</span>
-              <strong className="detail-channel">
-                <ChannelIcon channel={selected.channel} /> {selected.channel}
-              </strong>
-            </div>
-            <div>
-              <span>Thời gian tạo</span>
-              <strong>Hôm nay, 10:18</strong>
-            </div>
-          </section>
-          <button className="customer-history-button">
-            <Clock3 size={15} /> Lịch sử yêu cầu <ChevronDown size={14} />
-          </button>
-        </aside>
+
+            {/* CỘT PHẢI: THÔNG TIN KHÁCH HÀNG & THUỘC TÍNH VÉ (FIGMA BASE 3 & BASE 5) */}
+            <aside className="ticket-detail-aside" aria-label="Thông tin khách hàng & vé">
+              <div className="ticket-detail-panel">
+                <h3>
+                  <UserRound size={15} /> Thông tin khách hàng
+                </h3>
+                <div className="ticket-detail-panel-row">
+                  <span>Họ và tên</span>
+                  <strong>{selectedTicket.customer}</strong>
+                </div>
+                <div className="ticket-detail-panel-row">
+                  <span>Email</span>
+                  <strong>{selectedTicket.email || "Chưa có"}</strong>
+                </div>
+                <div className="ticket-detail-panel-row">
+                  <span>Điện thoại</span>
+                  <strong>{selectedTicket.phone || "Chưa có"}</strong>
+                </div>
+                <div className="ticket-detail-panel-row">
+                  <span>Công ty</span>
+                  <strong>{selectedTicket.company || "Cá nhân"}</strong>
+                </div>
+                <div className="ticket-detail-panel-row">
+                  <span>Gói dịch vụ</span>
+                  <strong style={{ color: "#047857" }}>{selectedTicket.plan || "Premium"}</strong>
+                </div>
+                <div className="ticket-detail-panel-row">
+                  <span>Kênh tiếp nhận</span>
+                  <strong className="detail-channel">
+                    <ChannelIcon channel={selectedTicket.channel} /> {selectedTicket.channel}
+                  </strong>
+                </div>
+              </div>
+
+              <div className="ticket-detail-panel">
+                <h3>
+                  <Clock3 size={15} /> Cam kết SLA & AI Triage
+                </h3>
+                <div className="ticket-detail-panel-row">
+                  <span>Thời gian SLA</span>
+                  <strong style={{ color: selectedTicket.priorityTone === "urgent" ? "#ef4444" : "#047857" }}>
+                    {selectedTicket.sla || "Còn 28 phút"}
+                  </strong>
+                </div>
+                <div className="sla-progress-wrap">
+                  <div className="sla-progress-bar">
+                    <div
+                      className={`sla-progress-fill ${selectedTicket.priorityTone === "urgent" ? "urgent" : ""}`}
+                      style={{ width: `${selectedTicket.slaPercent || 70}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="ticket-detail-panel-row" style={{ marginTop: "10px" }}>
+                  <span>Cảm xúc AI</span>
+                  <strong>
+                    <TriageBadge ticket={selectedTicket} />
+                  </strong>
+                </div>
+                <div className="ticket-detail-panel-row">
+                  <span>Priority Bump</span>
+                  <strong>{selectedTicket.isAiBumped ? "AI đã nâng ưu tiên" : "Chưa nâng bằng AI"}</strong>
+                </div>
+              </div>
+
+              <TriageDetails ticket={selectedTicket} />
+              <div className="ticket-detail-panel">
+                <h3>
+                  <Users size={15} /> Nhân viên phụ trách
+                </h3>
+                <div className="ticket-detail-panel-row">
+                  <span>Hiện tại</span>
+                  <strong>
+                    {(assignedTickets[selectedTicket.id] ?? selectedTicket.assignee) || "Chưa phân công"}
+                  </strong>
+                </div>
+                <label style={{ display: "block", marginTop: "10px" }}>
+                  <span style={{ fontSize: "10px", color: "#718078", fontWeight: 600 }}>
+                    Chuyển phân công (4 thành viên):
+                  </span>
+                  <select
+                    className="ticket-detail-assign-select"
+                    value={assignedTickets[selectedTicket.id] ?? selectedTicket.assignee}
+                    onChange={(e) => handleAssignChange(e.target.value)}
+                  >
+                    <option value="">-- Chưa phân công --</option>
+                    {teamMembers.map((member) => (
+                      <option key={member.name} value={member.name}>
+                        {member.name} ({member.initials})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </aside>
+          </div>
+        </div>
       )}
     </section>
   );
@@ -1066,6 +1069,7 @@ function Sidebar({
   onLogout,
   darkMode,
   onToggleTheme,
+  stats = { total: 0, pending: 0 },
 }) {
   const [helpOpen, setHelpOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -1269,7 +1273,22 @@ function Sidebar({
         </div>
         <p className="nav-caption">KHÔNG GIAN LÀM VIỆC</p>
         <nav className="nav-list" aria-label="Menu chính">
-          {navigation.map(({ label, title, icon: Icon, badge }) => (
+          {[
+            { label: "Dashboard", title: "Báo cáo", icon: LayoutDashboard },
+            {
+              label: "Unified Inbox",
+              title: "Hộp thư",
+              icon: Inbox,
+              badge: stats?.pending > 0 ? String(stats.pending) : null,
+            },
+            {
+              label: "Ticket List",
+              title: "Danh sách yêu cầu",
+              icon: FileText,
+              badge: stats?.total > 0 ? String(stats.total) : null,
+            },
+            { label: "Settings", title: "Cài đặt", icon: Settings },
+          ].map(({ label, title, icon: Icon, badge }) => (
             <button
               key={label}
               className={`nav-item ${active === label ? "nav-item-active" : ""}`}
@@ -1280,6 +1299,23 @@ function Sidebar({
               {badge && <span className="nav-badge">{badge}</span>}
             </button>
           ))}
+          <a
+            href="/customer-portal"
+            target="_blank"
+            rel="noreferrer"
+            className="nav-item"
+            style={{
+              marginTop: "8px",
+              border: "1px dashed rgba(16, 185, 129, 0.4)",
+              background: "rgba(16, 185, 129, 0.04)",
+              color: "#047857",
+              fontWeight: 600,
+            }}
+            title="Mở cổng gửi yêu cầu dành cho khách hàng"
+          >
+            <Globe2 size={18} />
+            <span>Customer Portal ↗</span>
+          </a>
         </nav>
         <div className="sidebar-bottom">
           <button
@@ -1302,9 +1338,9 @@ function Sidebar({
               type="button"
               onClick={() => openSettings({ tab: "profile" })}
             >
-              <Avatar initials="HP" color="lilac" title="Võ Hồng Phúc" />
+              <Avatar initials="NP" color="mint" title="Võ Ngọc Phú" />
               <span className="profile-copy">
-                <strong>Võ Hồng Phúc</strong>
+                <strong>Võ Ngọc Phú</strong>
                 <small>Quản trị viên</small>
               </span>
             </button>
@@ -1526,73 +1562,67 @@ function Sidebar({
   );
 }
 
-const notificationSamples = [
-  {
-    id: "new-ticket",
-    title: "Ticket mới",
-    message: "Khách hàng Võ Thị Thu Lộc vừa tạo yêu cầu #TK-2852",
-    time: "5 phút trước",
-    icon: FileText,
-    tone: "green",
-    destination: "Ticket List",
-    search: "#TK-2852",
-  },
-  {
-    id: "ticket-reply",
-    title: "Cập nhật",
-    message: "Trương Đình Thảo Đoan vừa phản hồi trong ticket #TK-2841",
-    time: "18 phút trước",
-    icon: MessageCircle,
-    tone: "blue",
-    destination: "Ticket List",
-    search: "#TK-2841",
-  },
-  {
-    id: "high-priority",
-    title: "Nhắc nhở",
-    message: "Có 2 yêu cầu ưu tiên cao chưa được xử lý",
-    time: "32 phút trước",
-    icon: Clock3,
-    tone: "amber",
-    destination: "Ticket List",
-    search: "Cao",
-  },
-];
+const notificationSamples = [];
 
 function GlobalSearchModal({ onClose, onSelect }) {
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
+  const [realTickets, setRealTickets] = useState([]);
   const inputRef = useRef(null);
 
+  useEffect(() => {
+    if (typeof ticketService !== "undefined" && ticketService.getTickets) {
+      ticketService
+        .getTickets({ limit: 50 })
+        .then((res) => {
+          const items =
+            res?.data?.data ||
+            res?.data?.items ||
+            res?.data ||
+            res?.items ||
+            [];
+          if (Array.isArray(items)) setRealTickets(items);
+        })
+        .catch(() => setRealTickets([]));
+    }
+  }, []);
+
   const customerMap = new Map();
-  [...initialConversations, ...ticketManagementSamples].forEach((record) => {
-    if (!customerMap.has(record.name ?? record.customer)) {
-      customerMap.set(record.name ?? record.customer, {
-        name: record.name ?? record.customer,
-        email: record.email ?? "Khách hàng HelpDesk",
-        initials: record.initials,
-        color: record.color,
+  realTickets.forEach((rt) => {
+    const custName = rt.customer?.full_name || rt.customer_name || rt.customer?.name;
+    if (custName && !customerMap.has(custName)) {
+      customerMap.set(custName, {
+        name: custName,
+        email: rt.customer?.email || rt.customer_email || "Khách hàng HelpDesk",
+        initials: custName.split(/\s+/).map((w) => w[0]).slice(-2).join("").toUpperCase() || "KH",
+        color: "mint",
       });
     }
   });
   const customers = [...customerMap.values()];
   const searchText = query.trim().toLocaleLowerCase("vi-VN");
-  const ticketResults = ticketManagementSamples
-    .filter((ticket) =>
-      `${ticket.id} ${ticket.subject} ${ticket.preview}`
+  const ticketResults = realTickets
+    .filter((rt) => {
+      const code = rt.ticket_code || rt.id || "";
+      const subj = rt.subject || "";
+      const desc = rt.description || "";
+      return `${code} ${subj} ${desc}`
         .toLocaleLowerCase("vi-VN")
-        .includes(searchText),
-    )
+        .includes(searchText);
+    })
     .slice(0, searchText ? 6 : 4)
-    .map((ticket) => ({
-      id: `ticket-${ticket.id}`,
-      type: "ticket",
-      title: ticket.subject,
-      detail: `${ticket.id} · ${ticket.status}`,
-      icon: FileText,
-      destination: "Ticket List",
-      search: ticket.id,
-    }));
+    .map((rt) => {
+      const code = rt.ticket_code || rt.id || `#TK-${String(rt.id).slice(0, 4)}`;
+      return {
+        id: `ticket-${code}`,
+        type: "ticket",
+        title: rt.subject || "Yêu cầu hỗ trợ",
+        detail: `${code} · ${rt.status === "CLOSED" ? "Đã giải quyết" : "Đang mở"}`,
+        icon: FileText,
+        destination: "Ticket List",
+        search: code,
+      };
+    });
   const customerResults = customers
     .filter((customer) =>
       `${customer.name} ${customer.email}`
@@ -1862,30 +1892,36 @@ function Header({
                 </button>
               </header>
               <div className="notification-list">
-                {notificationSamples.map((notification) => {
-                  const Icon = notification.icon;
-                  return (
-                    <button
-                      className="notification-item"
-                      key={notification.id}
-                      onClick={() => navigateNotification(notification)}
-                    >
-                      <span
-                        className={`notification-item-icon notification-${notification.tone}`}
+                {notificationSamples.length === 0 ? (
+                  <div style={{ padding: "1.75rem 1rem", textAlign: "center", color: "#6b7280", fontSize: "13px" }}>
+                    Không có thông báo mới.
+                  </div>
+                ) : (
+                  notificationSamples.map((notification) => {
+                    const Icon = notification.icon;
+                    return (
+                      <button
+                        className="notification-item"
+                        key={notification.id}
+                        onClick={() => navigateNotification(notification)}
                       >
-                        <Icon size={15} />
-                      </span>
-                      <span className="notification-item-copy">
-                        <strong>{notification.title}</strong>
-                        <span>{notification.message}</span>
-                        <small>{notification.time}</small>
-                      </span>
-                      {unreadCount > 0 && (
-                        <i className="notification-unread-dot" />
-                      )}
-                    </button>
-                  );
-                })}
+                        <span
+                          className={`notification-item-icon notification-${notification.tone}`}
+                        >
+                          <Icon size={15} />
+                        </span>
+                        <span className="notification-item-copy">
+                          <strong>{notification.title}</strong>
+                          <span>{notification.message}</span>
+                          <small>{notification.time}</small>
+                        </span>
+                        {unreadCount > 0 && (
+                          <i className="notification-unread-dot" />
+                        )}
+                      </button>
+                    );
+                  })
+                )}
               </div>
               <button
                 className="notification-see-all"
@@ -1913,9 +1949,9 @@ function Header({
               setAccountOpen((current) => !current);
             }}
           >
-            <Avatar initials="HP" color="lilac" small title="Võ Hồng Phúc" />
+            <Avatar initials="NP" color="mint" small title="Võ Ngọc Phú" />
             <span className="topbar-user-copy">
-              <strong>Võ Hồng Phúc</strong>
+              <strong>Võ Ngọc Phú</strong>
               <small>Quản trị viên</small>
             </span>
             <ChevronDown size={15} />
@@ -2016,23 +2052,29 @@ function ActivityPanel() {
         </button>
       </div>
       <div className="activity-list">
-        {activity.map((item, index) => (
-          <div className="activity-item" key={item.ticket}>
-            <div className="activity-avatar-wrap">
-              <Avatar initials={item.initials} color={item.color} />
-              <span className="activity-indicator">
-                {index === 0 ? <Check size={10} /> : <ArrowUpRight size={10} />}
-              </span>
-            </div>
-            <div className="activity-copy">
-              <p>
-                <strong>{item.name}</strong> {item.action}{" "}
-                <a href={`#${item.ticket}`}>{item.ticket}</a>
-              </p>
-              <span>{item.time}</span>
-            </div>
+        {activity.length === 0 ? (
+          <div style={{ padding: "2rem 1rem", textAlign: "center", color: "#6b7280", fontSize: "13px" }}>
+            Chưa có hoạt động mới.
           </div>
-        ))}
+        ) : (
+          activity.map((item, index) => (
+            <div className="activity-item" key={item.ticket}>
+              <div className="activity-avatar-wrap">
+                <Avatar initials={item.initials} color={item.color} />
+                <span className="activity-indicator">
+                  {index === 0 ? <Check size={10} /> : <ArrowUpRight size={10} />}
+                </span>
+              </div>
+              <div className="activity-copy">
+                <p>
+                  <strong>{item.name}</strong> {item.action}{" "}
+                  <a href={`#${item.ticket}`}>{item.ticket}</a>
+                </p>
+                <span>{item.time}</span>
+              </div>
+            </div>
+          ))
+        )}
       </div>
       <div className="team-summary">
         <div className="team-avatars">
@@ -2047,7 +2089,7 @@ function ActivityPanel() {
           ))}
         </div>
         <span>
-          <strong>5 thành viên</strong> đang trực tuyến
+          <strong>{teamMembers.length} thành viên</strong> đang trực tuyến
         </span>
         <i className="online-indicator" />
       </div>
@@ -2056,13 +2098,59 @@ function ActivityPanel() {
 }
 
 function TicketTable({ onViewAll }) {
+  const [feedState, setFeedState] = useState("loading");
+  const [recentTickets, setRecentTickets] = useState([]);
+
+  useEffect(() => watchTickets(
+    { limit: 5 },
+    (items) => {
+            const mapped = items.map((rt) => {
+              const custName =
+                rt.customer?.full_name ||
+                rt.customer_name ||
+                rt.customer?.name ||
+                "Khách hàng";
+              const rawInitials = custName
+                ? custName
+                    .trim()
+                    .split(/\s+/)
+                    .map((w) => w[0])
+                    .slice(-2)
+                    .join("")
+                    .toUpperCase()
+                : "KH";
+              return {
+                ...getTicketTriage(rt),
+                id: rt.ticket_code || rt.id || `#TK-${String(rt.id).slice(0, 4)}`,
+                subject: rt.subject || "Yêu cầu hỗ trợ",
+                name: custName,
+                initials: rawInitials || "KH",
+                color: rt.is_urgent_bumped || rt.priority === "urgent" ? "peach" : "mint",
+                channel:
+                  rt.channel?.channel_type === "telegram" || rt.channel_type === "telegram"
+                    ? "Telegram"
+                    : rt.channel?.channel_type === "email" || rt.channel_type === "email"
+                      ? "Email"
+                      : "Web Form",
+                status: getTicketStatus(rt.status),
+                tone: rt.is_urgent_bumped || rt.priority === "urgent" ? "high" : rt.status === "CLOSED" ? "waiting" : "progress",
+                created_at: rt.created_at,
+                time: formatRelativeTime(rt.created_at),
+                assignee: rt.assigned_agent?.full_name || rt.assignee?.name || rt.assignee_name || "Chưa phân công",
+              };
+            });
+setRecentTickets(mapped);
+setFeedState("ready");
+}, () => setFeedState("error"),
+), []);
+
   return (
     <section className="panel ticket-panel">
       <div className="panel-heading ticket-heading">
         <div>
           <div className="heading-title-row">
             <h2>Yêu cầu gần đây</h2>
-            <span className="subtle-count">248</span>
+            <span className="subtle-count">{recentTickets.length}</span>
           </div>
           <p>Các yêu cầu cần được chú ý</p>
         </div>
@@ -2070,6 +2158,7 @@ function TicketTable({ onViewAll }) {
           Xem tất cả <ArrowRight size={15} />
         </button>
       </div>
+      <TicketFeedStatus state={feedState} />
       <div className="table-scroll">
         <table>
           <thead>
@@ -2082,48 +2171,58 @@ function TicketTable({ onViewAll }) {
             </tr>
           </thead>
           <tbody>
-            {tickets.map((ticket) => (
-              <tr key={ticket.id}>
-                <td>
-                  <div className="ticket-cell">
-                    <Avatar initials={ticket.initials} color={ticket.color} />
-                    <div className="ticket-copy">
-                      <strong>{ticket.subject}</strong>
-                      <span>
-                        {ticket.id}
-                        <i />
-                        {ticket.name}
-                        <i />
-                        {ticket.channel}
-                      </span>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <span className={`status status-${ticket.tone}`}>
-                    <i />
-                    {ticket.status}
-                  </span>
-                </td>
-                <td className="time-cell">{ticket.time}</td>
-                <td>
-                  <Avatar
-                    initials={getTeamMember(ticket.assignee).initials}
-                    color={getTeamMember(ticket.assignee).color}
-                    small
-                    title={getTeamMember(ticket.assignee).name}
-                  />
-                </td>
-                <td>
-                  <button
-                    className="row-more"
-                    aria-label={`Tùy chọn ${ticket.id}`}
-                  >
-                    <MoreHorizontal size={18} />
-                  </button>
+            {recentTickets.length === 0 ? (
+              <tr>
+                <td colSpan={5} style={{ textAlign: "center", padding: "2.5rem 1rem", color: "#6b7280" }}>
+                  Chưa có yêu cầu hỗ trợ nào gần đây.
                 </td>
               </tr>
-            ))}
+            ) : (
+              recentTickets.map((ticket) => (
+                <tr key={ticket.id}>
+                  <td>
+                    <div className="ticket-cell">
+                      <Avatar initials={ticket.initials} color={ticket.color} />
+                      <div className="ticket-copy">
+                        <strong>{ticket.subject}</strong>
+                        <TriageBadge ticket={ticket} />
+                        {ticket.isAiBumped && <span className="ai-bump-label">AI nâng ưu tiên · Khẩn cấp</span>}
+                        <span>
+                          {ticket.id}
+                          <i />
+                          {ticket.name}
+                          <i />
+                          {ticket.channel}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span className={`status status-${ticket.tone}`}>
+                      <i />
+                      {ticket.status}
+                    </span>
+                  </td>
+                  <td className="time-cell">{ticket.time}</td>
+                  <td>
+                    <Avatar
+                      initials={getTeamMember(ticket.assignee).initials}
+                      color={getTeamMember(ticket.assignee).color}
+                      small
+                      title={getTeamMember(ticket.assignee).name}
+                    />
+                  </td>
+                  <td>
+                    <button
+                      className="row-more"
+                      aria-label={`Tùy chọn ${ticket.id}`}
+                    >
+                      <MoreHorizontal size={18} />
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -2154,7 +2253,10 @@ const ticketChannelIcons = {
 };
 
 function TicketManagement({ initialSearch = "" }) {
-  const [rows, setRows] = useState(ticketManagementSamples);
+  const [feedState, setFeedState] = useState("loading");
+  const localRows = useRef(new Map());
+  const removedRows = useRef(new Set());
+  const [rows, setRows] = useState([]);
   const [search, setSearch] = useState(initialSearch);
   const [filter, setFilter] = useState("Tất cả");
   const [page, setPage] = useState(1);
@@ -2166,6 +2268,64 @@ function TicketManagement({ initialSearch = "" }) {
 
   useEffect(() => setSearch(initialSearch), [initialSearch]);
 
+  useEffect(() => watchTickets(
+    { limit: 50 },
+    (items) => {
+            const mapped = items.map((rt) => {
+              const custName =
+                rt.customer?.full_name ||
+                rt.customer_name ||
+                rt.customer?.name ||
+                "Khách hàng";
+              const rawInitials = custName
+                ? custName
+                    .trim()
+                    .split(/\s+/)
+                    .map((w) => w[0])
+                    .slice(-2)
+                    .join("")
+                    .toUpperCase()
+                : "KH";
+              const firstMsg =
+                rt.description ||
+                rt.messages?.[0]?.content ||
+                rt.messages?.[rt.messages.length - 1]?.content ||
+                "";
+              return {
+                ...getTicketTriage(rt),
+                id: rt.ticket_code || rt.id || `#TK-${String(rt.id).slice(0, 4)}`,
+                subject: rt.subject || "Yêu cầu hỗ trợ",
+                preview: firstMsg ? (firstMsg.slice(0, 75) + "...") : "Không có nội dung chi tiết",
+                customer: custName,
+                initials: rawInitials || "KH",
+                color: rt.is_urgent_bumped || rt.priority === "urgent" ? "peach" : "mint",
+                channel:
+                  rt.channel?.channel_type === "telegram" || rt.channel_type === "telegram"
+                    ? "Telegram"
+                    : rt.channel?.channel_type === "email" || rt.channel_type === "email"
+                      ? "Email"
+                      : "Web Form",
+                assignee: rt.assigned_agent?.full_name || rt.assignee?.name || rt.assignee_name || "Chưa phân công",
+                priority: rt.is_urgent_bumped
+                  ? "Khẩn cấp (AI Bump)"
+                  : rt.priority === "urgent"
+                    ? "Khẩn cấp"
+                    : rt.priority === "high"
+                      ? "Cao"
+                      : "Trung bình",
+                status: getTicketStatus(rt.status),
+                created_at: rt.created_at,
+                time: formatRelativeTime(rt.created_at),
+              };
+            });
+setRows(mapped.filter(row => !removedRows.current.has(row.id)).map(row => {
+ const changes = localRows.current.get(row.id);
+ return changes ? { ...row, ...changes, priority: row.isAiBumped ? row.priority : changes.priority } : row;
+}).concat([...localRows.current.values()].filter(row => row.id && !mapped.some(item => item.id === row.id) && !removedRows.current.has(row.id))));
+setFeedState("ready");
+}, () => setFeedState("error"),
+), []);
+
   const selectedTicket = rows.find((ticket) => ticket.id === selectedId);
   const filteredRows = rows.filter((ticket) => {
     const matchesFilter = filter === "Tất cả" || ticket.status === filter;
@@ -2175,22 +2335,11 @@ function TicketManagement({ initialSearch = "" }) {
       searchableText.toLowerCase().includes(search.toLowerCase())
     );
   });
-  const isShowingAll = filter === "Tất cả" && search.trim() === "";
-  const totalCount = isShowingAll ? 248 : filteredRows.length;
+  const totalCount = filteredRows.length;
   const totalPages = Math.max(1, Math.ceil(totalCount / 10));
   const visibleStart = totalCount === 0 ? 0 : (page - 1) * 10 + 1;
-  const visibleEnd = isShowingAll
-    ? Math.min(page * 10, totalCount)
-    : Math.min(page * 10, totalCount);
-  const pageRows =
-    isShowingAll && page > 1
-      ? ticketManagementSamples
-          .slice(0, visibleEnd - visibleStart + 1)
-          .map((ticket, index) => ({
-            ...ticket,
-            id: `#TK-${String(2852 - (page - 1) * 10 - index).padStart(4, "0")}`,
-          }))
-      : filteredRows.slice((page - 1) * 10, page * 10);
+  const visibleEnd = Math.min(page * 10, totalCount);
+  const pageRows = filteredRows.slice((page - 1) * 10, page * 10);
   const pageNumbers =
     totalPages <= 4
       ? Array.from({ length: totalPages }, (_, index) => index + 1)
@@ -2241,6 +2390,10 @@ function TicketManagement({ initialSearch = "" }) {
         ? (rows.find((item) => item.id === editingId)?.time ?? "Vừa xong")
         : "Vừa xong",
     };
+    const changes = Object.fromEntries(
+      ["subject", "preview", "customer", "initials", "color", "channel", "assignee", "priority", "status"].map(field => [field, ticket[field]])
+    );
+    localRows.current.set(ticket.id, editingId ? changes : ticket);
     setRows((current) =>
       editingId
         ? current.map((item) => (item.id === editingId ? ticket : item))
@@ -2251,6 +2404,8 @@ function TicketManagement({ initialSearch = "" }) {
   };
 
   const removeTicket = () => {
+    removedRows.current.add(selectedId);
+    localRows.current.delete(selectedId);
     setRows((current) => current.filter((ticket) => ticket.id !== selectedId));
     setDialog(null);
     setSelectedId(null);
@@ -2269,7 +2424,7 @@ function TicketManagement({ initialSearch = "" }) {
         <div>
           <div className="ticket-management-title-line">
             <h1>Danh sách yêu cầu</h1>
-            <span className="ticket-total-badge">248 yêu cầu</span>
+            <span className="ticket-total-badge">{rows.length} yêu cầu</span>
           </div>
           <p>Theo dõi, phân công và xử lý các yêu cầu hỗ trợ.</p>
         </div>
@@ -2281,6 +2436,7 @@ function TicketManagement({ initialSearch = "" }) {
         </button>
       </div>
 
+      <TicketFeedStatus state={feedState} />
       <section className="ticket-management-panel">
         <div className="ticket-toolbar">
           <label className="ticket-search">
@@ -2314,22 +2470,27 @@ function TicketManagement({ initialSearch = "" }) {
           role="tablist"
           aria-label="Lọc theo trạng thái"
         >
-          {ticketStatuses.map((status) => (
-            <button
-              key={status}
-              type="button"
-              role="tab"
-              aria-selected={filter === status}
-              className={filter === status ? "ticket-filter-active" : ""}
-              onClick={() => {
-                setFilter(status);
-                setPage(1);
-              }}
-            >
-              {status}
-              {status === "Tất cả" && <span>248</span>}
-            </button>
-          ))}
+          {ticketStatuses.map((status) => {
+            const count =
+              status === "Tất cả"
+                ? rows.length
+                : rows.filter((r) => r.status === status).length;
+            return (
+              <button
+                key={status}
+                type="button"
+                role="tab"
+                aria-selected={filter === status}
+                className={filter === status ? "ticket-filter-active" : ""}
+                onClick={() => {
+                  setFilter(status);
+                  setPage(1);
+                }}
+              >
+                {status} <span>{count}</span>
+              </button>
+            );
+          })}
         </div>
 
         <div className="ticket-management-scroll">
@@ -2351,6 +2512,7 @@ function TicketManagement({ initialSearch = "" }) {
                 const assignee = getTeamMember(ticket.assignee);
                 const ChannelIcon = ticketChannelIcons[ticket.channel] ?? Mail;
                 const priorityClass =
+                  ticket.isAiBumped || ticket.priority.startsWith("Khẩn cấp") ? "urgent" :
                   ticket.priority === "Cao"
                     ? "high"
                     : ticket.priority === "Thấp"
@@ -2367,6 +2529,7 @@ function TicketManagement({ initialSearch = "" }) {
                           {ticket.subject}
                         </span>
                         <small>{ticket.preview}</small>
+                        <TriageBadge ticket={ticket} />
                       </div>
                     </td>
                     <td>
@@ -2457,8 +2620,8 @@ function TicketManagement({ initialSearch = "" }) {
               })}
               {pageRows.length === 0 && (
                 <tr>
-                  <td className="ticket-empty-cell" colSpan={8}>
-                    Không tìm thấy yêu cầu phù hợp.
+                  <td className="ticket-empty-cell" colSpan={8} style={{ textAlign: "center", padding: "3rem 1rem", color: "#6b7280" }}>
+                    Chưa có yêu cầu hỗ trợ nào trong hệ thống. Hãy tạo vé mới từ Web Portal hoặc gửi qua Email / Telegram.
                   </td>
                 </tr>
               )}
@@ -2580,7 +2743,7 @@ function TicketManagement({ initialSearch = "" }) {
                       onChange={(event) =>
                         setDraft({ ...draft, customer: event.target.value })
                       }
-                      placeholder="Tên khách hàng"
+                      placeholder="Ví dụ: Nguyễn Văn A"
                     />
                   </label>
                   <label>
@@ -2591,7 +2754,7 @@ function TicketManagement({ initialSearch = "" }) {
                       onChange={(event) =>
                         setDraft({ ...draft, initials: event.target.value })
                       }
-                      placeholder="VD"
+                      placeholder="NA"
                     />
                   </label>
                   <label>
@@ -2668,6 +2831,7 @@ function TicketManagement({ initialSearch = "" }) {
                 <span className="ticket-detail-id">{selectedTicket.id}</span>
                 <h3>{selectedTicket.subject}</h3>
                 <p>{selectedTicket.preview}</p>
+                <TriageDetails ticket={selectedTicket} />
                 <dl>
                   <div>
                     <dt>Khách hàng</dt>
@@ -3005,11 +3169,89 @@ function App() {
   const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
   const [ticketSearch, setTicketSearch] = useState("");
   const [inboxSearch, setInboxSearch] = useState("");
-  const [unreadNotificationCount, setUnreadNotificationCount] = useState(3);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [darkMode, setDarkMode] = useState(
     () => localStorage.getItem("helpdesk-theme") === "dark",
   );
+  const [dashboardStats, setDashboardStats] = useState({
+    total: 0,
+    resolved: 0,
+    pending: 0,
+  });
   const pathname = location.pathname.replace(/\/+$/, "") || "/";
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchStats = () => {
+      if (typeof ticketService !== "undefined" && ticketService.getTickets) {
+        ticketService
+          .getTickets({ limit: 100 })
+          .then((res) => {
+            if (!isMounted) return;
+            const items =
+              res?.data?.data ||
+              res?.data?.items ||
+              res?.data ||
+              res?.items ||
+              [];
+            if (Array.isArray(items)) {
+              const total = items.length;
+              const resolved = items.filter(
+                (t) => (t.status || "").toLowerCase() === "closed" || (t.status || "").toLowerCase() === "resolved",
+              ).length;
+              const pending = total - resolved;
+              setDashboardStats({ total, resolved, pending });
+            }
+          })
+          .catch(() => {});
+      }
+    };
+
+    fetchStats();
+    const timer = setInterval(fetchStats, 3000);
+    return () => {
+      isMounted = false;
+      clearInterval(timer);
+    };
+  }, [active]);
+
+  const dynamicMetrics = [
+    {
+      label: "Tổng số ticket",
+      value: String(dashboardStats.total),
+      change: dashboardStats.total > 0 ? "+100%" : "0%",
+      icon: Inbox,
+      tone: "green",
+      sparkline: "0,33 18,29 36,31 54,20 72,24 90,15 108,18 126,8 144,10 160,2",
+    },
+    {
+      label: "Ticket đã xong",
+      value: String(dashboardStats.resolved),
+      change: dashboardStats.resolved > 0 ? "đạt chuẩn" : "0",
+      icon: Check,
+      tone: "blue",
+      sparkline: "0,29 18,33 36,24 54,26 72,17 90,22 108,12 126,14 144,5 160,8",
+    },
+    {
+      label: "Ticket đang chờ",
+      value: String(dashboardStats.pending),
+      change: dashboardStats.pending > 0 ? `${dashboardStats.pending} cần xử lý` : "Đang trống",
+      icon: Clock3,
+      tone: "amber",
+      down: dashboardStats.pending > 0,
+      sparkline: "0,5 18,10 36,8 54,18 72,15 90,24 108,21 126,31 144,28 160,39",
+    },
+    {
+      label: "Thời gian phản hồi TB (SLA)",
+      value: "< 2 giờ",
+      change: "đạt mục tiêu",
+      footnote: "SLA chuẩn < 2 giờ",
+      icon: Activity,
+      tone: "coral",
+      neutral: true,
+      sparkline: "0,31 18,24 36,27 54,19 72,22 90,14 108,17 126,10 144,12 160,5",
+    },
+  ];
 
   useEffect(() => {
     localStorage.setItem("helpdesk-theme", darkMode ? "dark" : "light");
@@ -3057,6 +3299,14 @@ function App() {
     return <AuthPage key="register" mode="register" onLogin={() => {}} />;
   }
 
+  if (pathname === "/customer-portal" || pathname === "/portal") {
+    return (
+      <CustomerPortal
+        onSubmitTicket={(payload) => ticketService.createTicket(payload)}
+      />
+    );
+  }
+
   const navigate = (section, options = {}) => {
     setActive(section);
     setSidebarOpen(false);
@@ -3090,6 +3340,7 @@ function App() {
         onLogout={handleLogout}
         darkMode={darkMode}
         onToggleTheme={() => setDarkMode((current) => !current)}
+        stats={dashboardStats}
       />
       <main className="main-area">
         <Header
@@ -3115,7 +3366,7 @@ function App() {
                   THỨ HAI, 14 THÁNG 10, 2024
                 </div>
                 <h1>
-                  Chào buổi sáng, Võ Hồng Phúc <span className="wave">✳</span>
+                  Chào buổi sáng, Võ Ngọc Phú <span className="wave">✳</span>
                 </h1>
                 <p>Đây là những gì đang diễn ra với nhóm hỗ trợ của bạn.</p>
               </div>
@@ -3128,7 +3379,7 @@ function App() {
               </button>
             </div>
             <section className="metrics-grid" aria-label="Chỉ số tổng quan">
-              {metrics.map((metric) => (
+              {dynamicMetrics.map((metric) => (
                 <MetricCard key={metric.label} metric={metric} />
               ))}
             </section>

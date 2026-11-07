@@ -76,8 +76,8 @@ export const ticketService = {
      * Endpoint: GET /api/v1/tickets
      * @param {Object} params { page, limit, status, priority, channel_type, search, is_urgent_bumped }
      */
-    async getTickets(params = {}) {
-        const response = await api.get('/tickets', { params });
+    async getTickets(params = {}, options = {}) {
+        const response = await api.get('/tickets', { params, signal: options.signal });
         return response;
     },
 
@@ -94,3 +94,30 @@ export const ticketService = {
 };
 
 export default ticketService;
+
+// AI analysis happens after ticket creation. Refresh the server's ordered list
+// while the screen is mounted, keeping the last successful data on errors.
+export function watchTickets(params, onUpdate, onError) {
+    let disposed = false;
+    let timer;
+    const controller = new AbortController();
+    const refresh = async () => {
+        try {
+            const response = await ticketService.getTickets(params, { signal: controller.signal });
+            const items = response?.data?.data || response?.data?.items ||
+                response?.data || response?.items;
+            if (!Array.isArray(items)) throw new Error('INVALID_TICKET_RESPONSE');
+            if (!disposed) onUpdate(items);
+        } catch {
+            if (!disposed) onError();
+        } finally {
+            if (!disposed) timer = setTimeout(refresh, 5000);
+        }
+    };
+    void refresh();
+    return () => {
+        disposed = true;
+        clearTimeout(timer);
+        controller.abort();
+    };
+}

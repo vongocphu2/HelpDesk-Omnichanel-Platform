@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HelpDesk+ Logo Component (Chuẩn Figma)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@800&family=Plus+Jakarta+Sans:wght@700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0b1120;
+      color: #1e2d26;
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 30px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .card {
+      background: #ffffff;
+      padding: 24px 32px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: fit-content;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+      min-height: 36px;
+      border-radius: 11px;
+      background: #047857;
+      color: #ffffff;
+      flex-shrink: 0;
+    }
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      white-space: nowrap;
+    }
+    .brand-title {
+      font-family: 'Manrope', sans-serif;
+      font-size: 21px;
+      font-weight: 800;
+      color: #1e2d26;
+      line-height: 1.1;
+      white-space: nowrap;
+      display: block;
+    }
+    .brand-sub {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 1.25px;
+      color: #929b95;
+      margin-top: 3px;
+      white-space: nowrap;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Card 1: Logo Đầy Đủ (Icon + Chữ) -->
+  <div class="card">
+    <div class="card-title">1. Logo Đầy Đủ (Icon Squircle 36x36 + Text HelpDesk)</div>
+    <div class="brand">
+      <div class="brand-mark">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 11a9 9 0 0 1 18 0"/>
+          <path d="M3 11h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5Z"/>
+          <path d="M21 11v5a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3Z"/>
+          <path d="M21 16v2a4 4 0 0 1-4 4h-5"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <span class="brand-title">HelpDesk</span>
+        <span class="brand-sub">SUPPORT PLATFORM</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card 2: Chỉ Riêng Icon Squircle 36x36 (Để bạn dán đè trực tiếp lên ô 36x36 bị méo) -->
+  <div class="card">
+    <div class="card-title">2. Chỉ Riêng Ô Vuông Icon 36x36px (Thay thế trực tiếp ô bị méo)</div>
+    <div class="brand-mark">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 11a9 9 0 0 1 18 0"/>
+        <path d="M3 11h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5Z"/>
+        <path d="M21 11v5a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3Z"/>
+        <path d="M21 16v2a4 4 0 0 1-4 4h-5"/>
+      </svg>
+    </div>
+  </div>
+
+</body>
+</html>

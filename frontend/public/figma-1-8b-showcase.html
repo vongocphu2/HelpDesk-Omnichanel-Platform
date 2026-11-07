@@ -1,0 +1,3371 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HelpDesk+ - Khung Chuẩn Tuyệt Đối 6 Frame & Component System (Task 1.8b)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    
+    :root {
+      font-family: "Plus Jakarta Sans", sans-serif;
+      color: #1e2d26;
+      background: #f6f8f7;
+      --ink: #1e2d26;
+      --muted: #77867e;
+      --line: #e4eae6;
+      --green: #047857;
+      --green-deep: #065f46;
+      --surface-glass: rgba(255, 255, 255, 0.88);
+      --surface-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.05);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0b1120;
+      color: #1e2d26;
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 70px;
+    }
+
+    /* Figma Frame 1440x900 Exact Wrapper */
+    .figma-frame-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .frame-label {
+      font-family: 'Manrope', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .frame-badge {
+      background: #047857;
+      color: #fff;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .frame-desc {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-left: 8px;
+    }
+
+    .figma-frame-1440 {
+      width: 1440px;
+      height: 900px;
+      background: #f6f8f7;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      border-radius: 12px;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    /* App Shell CSS from index.css */
+    .sidebar {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 254px;
+      display: flex;
+      flex-direction: column;
+      padding: 25px 17px 15px;
+      border-right: 1px solid rgba(203, 213, 225, 0.48);
+      background: rgba(255, 255, 255, 0.88);
+      box-shadow: 10px 0 30px -24px rgba(15, 23, 42, 0.24);
+      backdrop-filter: blur(16px);
+      z-index: 20;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: auto;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+      min-height: 36px;
+      border-radius: 11px;
+      background: #047857;
+      color: #ffffff;
+      flex-shrink: 0;
+    }
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      white-space: nowrap;
+    }
+    .brand-title {
+      font-family: 'Manrope', sans-serif;
+      font-size: 21px;
+      font-weight: 800;
+      color: #1e2d26;
+      line-height: 1.1;
+      white-space: nowrap;
+      display: block;
+    }
+    .brand-sub {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 1.25px;
+      color: #929b95;
+      margin-top: 3px;
+      white-space: nowrap;
+      display: block;
+    }
+    .workspace-switcher {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 24px 0;
+      padding: 10px;
+      border: 1px solid rgba(226, 232, 240, 0.72);
+      border-radius: 9px;
+      background: rgba(255, 255, 255, 0.58);
+    }
+    .workspace-mark {
+      display: grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      border-radius: 8px;
+      background: #e9f3e9;
+      color: #397857;
+      font: 800 15px "Manrope", sans-serif;
+    }
+    .workspace-copy, .profile-copy {
+      display: flex;
+      min-width: 0;
+      flex: 1;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .workspace-copy strong, .profile-copy strong { font-size: 12px; }
+    .workspace-copy small, .profile-copy small { color: var(--muted); font-size: 10px; }
+    .workspace-switcher > svg { color: #98a19b; }
+
+    .nav-caption {
+      margin: 0 0 11px 9px;
+      color: #a2aaa5;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1.15px;
+    }
+    .nav-list { display: grid; gap: 5px; }
+    .nav-item {
+      position: relative;
+      display: flex;
+      height: 42px;
+      align-items: center;
+      gap: 12px;
+      padding: 0 11px;
+      border-radius: 7px;
+      color: #737f78;
+      text-decoration: none;
+      font-size: 12px;
+    }
+    .nav-item-active {
+      background: rgba(16, 185, 129, 0.09);
+      box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.09);
+      color: var(--green-deep);
+      font-weight: 700;
+    }
+    .nav-item-active::before {
+      position: absolute;
+      top: 9px;
+      bottom: 9px;
+      left: 0;
+      width: 2px;
+      border-radius: 0 3px 3px 0;
+      background: #10b981;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.32);
+      content: "";
+    }
+    .nav-badge {
+      display: grid;
+      min-width: 21px;
+      height: 20px;
+      margin-left: auto;
+      place-items: center;
+      border-radius: 6px;
+      background: #dff5e8;
+      color: #047857;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .sidebar-bottom { margin-top: auto; }
+    .help-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      margin: 0 1px 17px;
+      padding: 13px 10px;
+      border: 1px solid #edf0ed;
+      border-radius: 8px;
+    }
+    .help-card-icon {
+      display: grid;
+      width: 27px;
+      height: 27px;
+      flex: 0 0 auto;
+      place-items: center;
+      border-radius: 7px;
+      background: #f0f5ed;
+      color: #4d7f5c;
+    }
+    .help-card strong { font-size: 11px; }
+    .help-card p { margin: 4px 0 0; color: var(--muted); font-size: 10px; }
+    .help-card > svg { margin: 2px 0 0 auto; color: #929b95; }
+    .profile-row {
+      display: flex;
+      width: 100%;
+      align-items: center;
+      gap: 9px;
+      padding: 12px 2px 1px;
+      border-top: 1px solid var(--line);
+    }
+    .profile-row > svg { color: #8d9791; margin-left: auto; }
+
+    /* Avatars */
+    .avatar {
+      display: inline-grid;
+      width: 35px;
+      height: 35px;
+      flex: 0 0 auto;
+      place-items: center;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.92);
+      box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.24);
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .avatar-small { width: 29px; height: 29px; font-size: 9px; }
+    .avatar-lilac { background: #eee8fa; color: #6c5598; }
+    .avatar-peach { background: #fae9df; color: #a96039; }
+    .avatar-mint { background: #e2f2e8; color: #367557; }
+    .avatar-blue { background: #e3eff7; color: #3f6c8b; }
+
+    /* Main Area: 1186px width x 900px height */
+    .main-area {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 254px;
+      width: 1186px;
+      height: 900px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Topbar: 67px height */
+    .topbar {
+      display: flex;
+      height: 67px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 37px;
+      border-bottom: 1px solid rgba(203, 213, 225, 0.52);
+      background: rgba(255, 255, 255, 0.78);
+      box-shadow: 0 5px 24px -20px rgba(15, 23, 42, 0.34);
+      backdrop-filter: blur(16px);
+      flex-shrink: 0;
+    }
+    .breadcrumbs {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #97a09a;
+      font-size: 11px;
+    }
+    .breadcrumbs strong { color: #35413b; font-weight: 600; }
+    .breadcrumb-slash { color: #c5ccc7; }
+    .topbar-actions { display: flex; align-items: center; gap: 17px; }
+    .search-box {
+      display: flex;
+      width: 211px;
+      height: 34px;
+      align-items: center;
+      gap: 8px;
+      padding: 0 9px;
+      border: 1px solid #ebefeb;
+      border-radius: 6px;
+      color: #929b95;
+    }
+    .search-box input {
+      width: 100%;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--ink);
+      font-size: 11px;
+    }
+    .search-box kbd {
+      padding: 3px 4px;
+      border: 1px solid #e7ebe7;
+      border-radius: 4px;
+      color: #9aa39d;
+      font: 9px "Plus Jakarta Sans", sans-serif;
+    }
+    .icon-button {
+      display: grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: #637069;
+      cursor: pointer;
+    }
+    .notification-button { position: relative; }
+    .notification-button i {
+      position: absolute;
+      top: 7px;
+      right: 7px;
+      width: 7px;
+      height: 7px;
+      border: 1.5px solid #fff;
+      border-radius: 50%;
+      background: #e58a61;
+    }
+    .topbar-divider { width: 1px; height: 26px; background: var(--line); }
+    .user-menu { display: flex; align-items: center; gap: 8px; }
+    .topbar-user-copy { display: flex; flex-direction: column; gap: 2px; text-align: left; }
+    .topbar-user-copy strong { font-size: 11px; }
+    .topbar-user-copy small { color: var(--muted); font-size: 9px; }
+
+    /* Inbox Layout: 833px height, 3-column grid */
+    .inbox-layout {
+      height: 833px;
+      display: grid;
+      grid-template-columns: 285px 1fr 275px;
+      background: #f7f9f7;
+      overflow: hidden;
+    }
+
+    /* Column 1: Queue */
+    .inbox-queue {
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--line);
+      background: #fff;
+      height: 100%;
+      overflow: hidden;
+    }
+    .queue-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 17px 12px;
+    }
+    .queue-heading h1 { font: 700 17px/1.3 "Manrope", sans-serif; }
+    .queue-heading p { margin: 4px 0 0; color: #929c95; font-size: 10px; }
+    .queue-compose { border: 1px solid #e8ede9; color: #3c7e5d; }
+    .queue-search {
+      display: flex;
+      height: 35px;
+      align-items: center;
+      gap: 8px;
+      margin: 0 13px 10px;
+      padding: 0 9px;
+      border: 1px solid #e9ede9;
+      border-radius: 6px;
+      color: #919b94;
+    }
+    .queue-search input { width: 100%; border: 0; outline: 0; background: transparent; font-size: 10px; }
+    .queue-filters {
+      display: flex;
+      gap: 12px;
+      padding: 0 17px 8px;
+      border-bottom: 1px solid #f0f2f0;
+      align-items: center;
+    }
+    .queue-filter {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 0;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      background: transparent;
+      color: #8a958e;
+      font-size: 10px;
+      font-weight: 600;
+    }
+    .queue-filter span {
+      display: grid;
+      min-width: 17px;
+      height: 17px;
+      place-items: center;
+      border-radius: 5px;
+      background: #f0f3f0;
+      color: #758078;
+      font-size: 9px;
+    }
+    .queue-filter-active {
+      border-color: #32805d;
+      color: #2f7655;
+      font-weight: 700;
+    }
+    .filter-chip {
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 600;
+      background: #f1f5f3;
+      color: #5f6e66;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+    .urgent-chip { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; font-weight: 700; }
+    .urgent-chip-active {
+      background: #ef4444;
+      color: #fff;
+      font-weight: 700;
+      box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+      border: 1px solid #dc2626;
+    }
+
+    .conversation-list { flex: 1; overflow-y: auto; }
+    .conversation-row {
+      display: flex;
+      width: 100%;
+      min-height: 86px;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px 13px 10px;
+      border-bottom: 1px solid #f0f2f0;
+      background: #fff;
+      text-align: left;
+    }
+    .conversation-row-active {
+      background: #eef5ef;
+      border-left: 3px solid #047857;
+    }
+    .conversation-row-copy { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 5px; }
+    .conversation-row-top, .conversation-row-bottom { display: flex; align-items: center; gap: 6px; }
+    .conversation-row-top strong { color: #344039; font-size: 10px; font-weight: 700; }
+    .conversation-row-top time { margin-left: auto; color: #9aa39d; font-size: 8px; }
+    .conversation-row-preview { color: #7e8982; font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .channel-label, .detail-channel { display: inline-flex; align-items: center; gap: 4px; font-size: 8px; }
+    .channel-email { color: #9b6848; }
+    .channel-telegram { color: #4286a5; }
+    .channel-web-form { color: #568265; }
+    .conversation-ticket { color: #a0a9a3; font-size: 8px; }
+    .unread-dot { width: 7px; height: 7px; margin-left: auto; border-radius: 50%; background: #37845f; }
+    .queue-footer {
+      display: flex;
+      height: 37px;
+      align-items: center;
+      gap: 7px;
+      padding: 0 15px;
+      border-top: 1px solid #edf0ed;
+      color: #8b968e;
+      font-size: 9px;
+    }
+    .online-indicator { width: 6px; height: 6px; border-radius: 50%; background: #4fb27a; }
+
+    /* Column 2: Conversation */
+    .inbox-conversation {
+      display: flex;
+      flex-direction: column;
+      background: #f7f9f7;
+      height: 100%;
+      overflow: hidden;
+      position: relative;
+    }
+    .conversation-header {
+      display: flex;
+      height: 69px;
+      align-items: center;
+      gap: 10px;
+      padding: 0 19px;
+      border-bottom: 1px solid #e9ede9;
+      background: #fff;
+      flex-shrink: 0;
+    }
+    .conversation-back {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 9px;
+      border: 1px solid #e8ede8;
+      border-radius: 5px;
+      background: #f8faf8;
+      color: #58655e;
+      font-size: 9px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .conversation-contact { display: flex; flex-direction: column; gap: 3px; }
+    .conversation-contact strong { color: #303b35; font-size: 11px; font-weight: 700; }
+    .conversation-contact span { display: flex; align-items: center; gap: 5px; color: #8d9891; font-size: 9px; }
+    .conversation-contact span i { width: 6px; height: 6px; border-radius: 50%; background: #58a376; }
+    .conversation-header-channel {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 6px;
+      border: 1px solid #edf0ed;
+      border-radius: 5px;
+      color: #7c8981;
+      font-size: 9px;
+    }
+    .conversation-tools { display: flex; gap: 4px; margin-left: 8px; }
+
+    .ticket-subject {
+      display: flex;
+      min-height: 45px;
+      align-items: center;
+      gap: 9px;
+      padding: 0 22px;
+      border-bottom: 1px solid #e9ede9;
+      background: #fff;
+      flex-shrink: 0;
+    }
+    .subject-ticket-id { color: #8a958e; font-size: 9px; font-weight: 600; }
+    .ticket-subject strong { color: #56625a; font-size: 10px; font-weight: 600; }
+
+    .message-history {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+      padding: 18px 24px;
+    }
+    .message-date {
+      align-self: center;
+      padding: 4px 8px;
+      border: 1px solid #e8ede8;
+      border-radius: 20px;
+      background: #fff;
+      color: #8d9891;
+      font-size: 8px;
+    }
+    .message-line { display: flex; max-width: 84%; align-items: flex-end; gap: 8px; }
+    .message-agent { align-self: flex-end; justify-content: flex-end; }
+    .message-customer { align-self: flex-start; }
+    .message-body p {
+      margin: 0;
+      padding: 10px 13px;
+      border: 1px solid #e7ece7;
+      border-radius: 10px 10px 10px 3px;
+      background: #fff;
+      color: #46534b;
+      font-size: 10px;
+      line-height: 1.6;
+    }
+    .message-agent .message-body p {
+      border-color: #287b59;
+      border-radius: 10px 10px 3px 10px;
+      background: #287b59;
+      color: #fff;
+    }
+    .message-body > span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 4px;
+      color: #9aa49d;
+      font-size: 8px;
+    }
+    .message-agent .message-body > span { justify-content: flex-end; color: #478b68; font-weight: 600; }
+
+    /* Composer */
+    .reply-composer {
+      flex-shrink: 0;
+      margin: 0 17px 15px;
+      padding: 9px 12px 8px;
+      border: 1px solid #e5ebe5;
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 3px 12px rgba(41, 59, 47, 0.04);
+    }
+    .ai-draft-trigger-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      background: linear-gradient(135deg, #047857 0%, #10b981 100%);
+      color: #fff;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(4, 120, 87, 0.3);
+    }
+    .reply-composer textarea {
+      display: block;
+      width: 100%;
+      min-height: 44px;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: #344039;
+      font-size: 10px;
+      line-height: 1.5;
+      resize: none;
+    }
+    .composer-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 5px;
+      border-top: 1px solid #f0f2f0;
+    }
+    .composer-actions > div { display: flex; align-items: center; gap: 2px; }
+    .composer-actions .icon-button { width: 28px; height: 28px; color: #849088; }
+    .composer-hint { color: #a2aaa5; font-size: 8px; margin-left: 6px; }
+    .send-reply {
+      display: inline-flex;
+      height: 31px;
+      align-items: center;
+      gap: 6px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 5px;
+      background: #287b59;
+      color: #fff;
+      font-size: 9px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Floating AI Draft Card */
+    .ai-draft-overlay-card {
+      position: absolute;
+      left: 17px;
+      right: 17px;
+      bottom: 145px;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(18px);
+      border-radius: 12px;
+      padding: 16px;
+      border: 1.5px solid #10b981;
+      box-shadow: 0 12px 36px -6px rgba(4, 120, 87, 0.22);
+      z-index: 10;
+    }
+    .ai-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .ai-card-title { display: flex; align-items: center; gap: 8px; font: 800 12px "Manrope", sans-serif; color: #047857; }
+    .ai-confidence-badge {
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #a7f3d0;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 9px;
+      font-weight: 700;
+    }
+    .btn-dismiss { background: transparent; border: 0; color: #68756e; font-size: 10px; cursor: pointer; font-weight: 600; }
+    .ai-card-body {
+      font-size: 11px;
+      line-height: 1.6;
+      color: #344039;
+      background: #f8faf9;
+      padding: 10px 12px;
+      border-radius: 7px;
+      border: 1px solid #e4eae6;
+      margin-bottom: 12px;
+    }
+    .ai-card-actions { display: flex; justify-content: space-between; align-items: center; }
+    .ai-actions-left { display: flex; gap: 8px; }
+    .btn-apply-draft {
+      background: #047857;
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 999px;
+      border: 0;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(4, 120, 87, 0.3);
+    }
+    .btn-regenerate {
+      background: #fff;
+      color: #46534b;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid #e4eae6;
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Column 3: Customer Details */
+    .customer-details {
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid var(--line);
+      background: #fff;
+      height: 100%;
+      overflow-y: auto;
+    }
+    .details-heading {
+      display: flex;
+      height: 56px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 17px;
+      border-bottom: 1px solid #edf0ed;
+      flex-shrink: 0;
+    }
+    .details-heading h2 { font: 700 12px "Manrope", sans-serif; }
+    .details-close { display: none; }
+    .customer-profile { display: flex; align-items: center; flex-direction: column; padding: 18px 12px 14px; }
+    .customer-profile .avatar { width: 43px; height: 43px; margin-bottom: 7px; font-size: 12px; }
+    .customer-profile > strong { color: #334039; font-size: 11px; font-weight: 700; }
+    .customer-profile > span { margin-top: 3px; color: #9aa39d; font-size: 8px; }
+    .customer-contact-list { display: grid; gap: 11px; padding: 0 17px 14px; }
+    .customer-contact-list > div { display: flex; align-items: flex-start; gap: 9px; color: #8d9891; }
+    .customer-contact-list small { color: #9aa39d; font-size: 8px; }
+    .customer-contact-list strong { color: #4b5850; font-size: 9px; font-weight: 500; }
+    .details-divider { height: 1px; background: #edf0ed; }
+    .ticket-properties, .ticket-context { display: grid; gap: 12px; padding: 14px 15px; }
+    .ticket-properties h3, .ticket-context h3 { color: #56625a; font-size: 9px; font-weight: 700; }
+    .property-group { display: flex; flex-direction: column; gap: 5px; }
+    .property-group > span:first-child { color: #98a19b; font-size: 8px; }
+    .status-switch {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      padding: 3px;
+      border: 1px solid #e9ede9;
+      border-radius: 6px;
+      background: #f8faf8;
+    }
+    .status-switch button {
+      display: flex;
+      height: 27px;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      border: 0;
+      border-radius: 4px;
+      background: transparent;
+      color: #8a958e;
+      font-size: 8px;
+      font-weight: 600;
+    }
+    .status-switch button.status-selected {
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(32, 52, 38, 0.08);
+      color: #b07d34;
+      font-weight: 700;
+    }
+    .status-switch button.status-selected.status-done { color: #32805d; }
+    .priority-select {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      height: 27px;
+      padding: 0 8px;
+      border: 1px solid #e9ede9;
+      border-radius: 5px;
+      background: #fff;
+      font-size: 9px;
+      font-weight: 600;
+    }
+    .priority-cao { color: #b86248; }
+    .assignee-select-wrap {
+      display: flex;
+      height: 34px;
+      align-items: center;
+      gap: 7px;
+      padding: 0 7px;
+      border: 1px solid #e9ede9;
+      border-radius: 5px;
+      background: #fff;
+    }
+    .ticket-context > div {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #9aa39d;
+      font-size: 8px;
+    }
+    .ticket-context > div strong { color: #556159; font-weight: 600; }
+    .customer-history-button {
+      display: flex;
+      width: calc(100% - 30px);
+      height: 32px;
+      align-items: center;
+      gap: 7px;
+      margin: 0 15px 15px;
+      padding: 0 9px;
+      border: 1px solid #e9ede9;
+      border-radius: 5px;
+      background: #fff;
+      color: #69756e;
+      font-size: 9px;
+      cursor: pointer;
+    }
+    .customer-history-button > svg:last-child { margin-left: auto; }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 9px;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+    .badge-urgent { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; font-weight: 700; }
+    .badge-frustrated { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; font-weight: 700; }
+    .badge-positive { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; font-weight: 600; }
+    .badge-neutral { background: #eff6ff; color: #3b82f6; border: 1px solid #bfdbfe; font-weight: 600; }
+    .badge-open { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+    .badge-progress { background: #f0f9ff; color: #0369a1; border: 1px solid #bae6fd; font-weight: 700; }
+    .badge-resolved { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+
+    /* Component System Board */
+    .component-system-board {
+      background: #fff;
+      padding: 36px;
+      border-radius: 14px;
+      border: 1px solid #e4eae6;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
+    }
+    .comp-group { display: flex; flex-direction: column; gap: 14px; }
+    .comp-group-title {
+      font: 800 13px "Manrope", sans-serif;
+      color: #047857;
+      padding-bottom: 7px;
+      border-bottom: 1.5px solid #e4eae6;
+    }
+    .comp-item-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    
+  </style>
+</head>
+<body>
+
+  <!-- BANNER TỔNG QUAN -->
+  <header style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 28px 36px; border-radius: 18px; color: #fff; display: flex; justify-content: space-between; align-items: center; border: 1px solid #334155; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);">
+    <div>
+      <h1 style="font-family: 'Manrope', sans-serif; font-size: 26px; font-weight: 800; color: #34d399; letter-spacing: -0.5px;">HelpDesk+ — Đầy Đủ 6 Frame Chuẩn Khung Mẫu & Component System</h1>
+      <p style="color: #94a3b8; font-size: 14px; margin-top: 6px;">Khôi phục chuẩn xác 100% Khung App Shell (Sidebar 254px + Topbar 67px) và 3 Cột cho TẤT CẢ 6 Frame 1440x900px</p>
+    </div>
+    <div style="background: rgba(255, 255, 255, 0.05); padding: 12px 20px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); font-size: 13px; color: #cbd5e1; text-align: right; line-height: 1.6;">
+      <strong>Task 1.8b: Võ Hồng Phúc (Frontend Lead & UI/UX)</strong><br>
+      Kịch bản Alex Morgan #TK-1082 • Phân công: Võ Ngọc Phú • Phục vụ Đoan nối 15 Prototype Events
+    </div>
+  </header>
+
+  <!-- 6 FRAMES -->
+  
+    <!-- Frame 1: Base 2 Unified Inbox -->
+    <div class="figma-frame-wrapper">
+      <div class="frame-label">
+        <span>Frame 1: Base 2 Unified Inbox</span>
+        <span class="frame-badge">1440 x 900 px</span>
+        <span class="frame-desc">Màn hình tổng quan Hàng đợi 4 ticket, thẻ Alex Morgan #TK-1082 ở đầu với đầy đủ Sidebar 254px và Topbar 67px</span>
+      </div>
+
+      <div class="figma-frame-1440" id="base-2-unified-inbox">
+        
+      <!-- SIDEBAR (width: 254px) -->
+      <aside class="sidebar">
+        <!-- Brand -->
+        <div class="brand">
+          <div class="brand-mark">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 11a9 9 0 0 1 18 0"/>
+              <path d="M3 11h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5Z"/>
+              <path d="M21 11v5a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3Z"/>
+              <path d="M21 16v2a4 4 0 0 1-4 4h-5"/>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <span class="brand-title">HelpDesk</span>
+            <span class="brand-sub">SUPPORT PLATFORM</span>
+          </div>
+        </div>
+
+        <!-- Workspace Switcher -->
+        <div class="workspace-switcher">
+          <div class="workspace-mark">H</div>
+          <div class="workspace-copy">
+            <strong>HelpDesk</strong>
+            <small>Gói chuyên nghiệp</small>
+          </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
+
+        <!-- Nav Caption -->
+        <div class="nav-caption">KHÔNG GIAN LÀM VIỆC</div>
+
+        <!-- Nav List (4 items matching App.jsx) -->
+        <nav class="nav-list">
+          <a href="#" class="nav-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+            <span>Báo cáo</span>
+          </a>
+          <a href="#" class="nav-item nav-item-active">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+            <span>Hộp thư</span>
+            <span class="nav-badge">4</span>
+          </a>
+          <a href="#" class="nav-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+            <span>Danh sách yêu cầu</span>
+          </a>
+          <a href="#" class="nav-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span>Cài đặt</span>
+          </a>
+        </nav>
+
+        <!-- Sidebar Bottom -->
+        <div class="sidebar-bottom">
+          <div class="help-card">
+            <div class="help-card-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></div>
+            <div>
+              <strong>Cần hỗ trợ?</strong>
+              <p>Chúng tôi luôn ở đây.</p>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </div>
+
+          <div class="profile-row">
+            <div class="avatar avatar-lilac">HP</div>
+            <div class="profile-copy">
+              <strong>Võ Hồng Phúc</strong>
+              <small>Quản trị viên</small>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+          </div>
+        </div>
+      </aside>
+    
+
+        <div class="main-area">
+          
+      <!-- TOPBAR (height: 67px) -->
+      <header class="topbar">
+        <div class="breadcrumbs">
+          <span>Không gian làm việc</span>
+          <span class="breadcrumb-slash">/</span>
+          <strong>Hộp thư</strong>
+        </div>
+
+        <div class="topbar-actions">
+          <div class="search-box">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="text" placeholder="Tìm kiếm..." readonly />
+            <kbd>Ctrl K</kbd>
+          </div>
+
+          <button class="icon-button notification-button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+            <i></i>
+          </button>
+
+          <div class="topbar-divider"></div>
+
+          <div class="user-menu">
+            <div class="avatar avatar-small avatar-lilac">HP</div>
+            <div class="topbar-user-copy">
+              <strong>Võ Hồng Phúc</strong>
+              <small>Quản trị viên</small>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+        </div>
+      </header>
+    
+          <div class="inbox-layout">
+            
+      <!-- COLUMN 1: QUEUE (width: 285px) -->
+      <section class="inbox-queue">
+        <div class="queue-heading">
+          <div>
+            <h1>Hộp thư đến</h1>
+            <p>2 tin nhắn chưa đọc</p>
+          </div>
+          <button class="icon-button queue-compose"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
+        </div>
+
+        <div class="queue-search">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" placeholder="Tìm tên hoặc nội dung..." readonly />
+        </div>
+
+        <div class="queue-filters">
+          <button class="queue-filter queue-filter-active">Tất cả <span>4</span></button>
+          <button class="queue-filter">Chưa đọc <span>2</span></button>
+          <button class="filter-chip urgent-chip">🔥 AI Urgent Bump</button>
+        </div>
+
+        <div class="conversation-list">
+          
+      <div class="conversation-row conversation-row-active">
+        <div class="avatar avatar-peach">AM</div>
+        <div class="conversation-row-copy">
+          <div class="conversation-row-top">
+            <strong>Alex Morgan</strong>
+            <time>14:32</time>
+          </div>
+          <div class="conversation-row-preview">Thẻ ngân hàng bị trừ tiền nhưng website báo lỗi 500</div>
+          <div class="conversation-row-bottom">
+            <span class="channel-label channel-web-form"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg> Web Form</span>
+            <span class="conversation-ticket">#TK-1082</span>
+            <span class="badge badge-urgent">🔥 AI Urgent</span>
+            <span class="badge badge-frustrated">Bực bội (88%)</span>
+            <span class="unread-dot"></span>
+          </div>
+        </div>
+      </div>
+    
+      <div class="conversation-row">
+        <div class="avatar avatar-blue">SC</div>
+        <div class="conversation-row-copy">
+          <div class="conversation-row-top">
+            <strong>Sarah Connor</strong>
+            <time>14:15</time>
+          </div>
+          <div class="conversation-row-preview">Hỏi về quy trình gia hạn hợp đồng doanh nghiệp</div>
+          <div class="conversation-row-bottom">
+            <span class="channel-label channel-email"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> Email</span>
+            <span class="conversation-ticket">#TK-1081</span>
+            <span class="badge badge-positive">Tích cực (92%)</span>
+          </div>
+        </div>
+      </div>
+    
+      <div class="conversation-row">
+        <div class="avatar avatar-lilac">DB</div>
+        <div class="conversation-row-copy">
+          <div class="conversation-row-top">
+            <strong>David Beckham</strong>
+            <time>13:30</time>
+          </div>
+          <div class="conversation-row-preview">Cần hỗ trợ tích hợp Webhook Telegram</div>
+          <div class="conversation-row-bottom">
+            <span class="channel-label channel-telegram"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg> Telegram</span>
+            <span class="conversation-ticket">#TK-1080</span>
+            <span class="badge badge-neutral">Trung tính (70%)</span>
+          </div>
+        </div>
+      </div>
+    
+      <div class="conversation-row">
+        <div class="avatar avatar-mint">EW</div>
+        <div class="conversation-row-copy">
+          <div class="conversation-row-top">
+            <strong>Emma Watson</strong>
+            <time>11:20</time>
+          </div>
+          <div class="conversation-row-preview">Xác nhận đã nhận lại mã kích hoạt</div>
+          <div class="conversation-row-bottom">
+            <span class="channel-label" style="color: #059669;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg> Livechat</span>
+            <span class="conversation-ticket">#TK-1079</span>
+            <span class="badge badge-resolved">Đã giải quyết</span>
+          </div>
+        </div>
+      </div>
+    
+        </div>
+
+        <div class="queue-footer">
+          <span class="online-indicator"></span>
+          <span>Đồng bộ trực tiếp</span>
+        </div>
+      </section>
+    
+            
+      <!-- COLUMN 2: CONVERSATION (width: 626px) -->
+      <section class="inbox-conversation">
+        <!-- Tầng 1: Conversation Header (height: 69px) -->
+        <div class="conversation-header">
+          <button class="conversation-back">← Quay lại Hàng đợi</button>
+          <div class="avatar avatar-peach">AM</div>
+          <div class="conversation-contact">
+            <strong>Alex Morgan</strong>
+            <span><i></i>Đang hoạt động</span>
+          </div>
+          <span class="conversation-header-channel"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg> Web Form</span>
+          <span class="badge badge-urgent" style="margin-left: auto;">🔥 Priority Bump: URGENT</span>
+          <div class="conversation-tools">
+            <button class="icon-button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 1 0-16 0"/></svg></button>
+            <button class="icon-button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></button>
+          </div>
+        </div>
+
+        <!-- Tầng 2: Ticket Subject (height: 45px) -->
+        <div class="ticket-subject">
+          <span class="subject-ticket-id">#TK-1082</span>
+          <strong>Thẻ ngân hàng bị trừ tiền nhưng website báo lỗi 500</strong>
+          <span style="margin-left: auto; font-size: 10px; color: #68756e; font-weight: 600;">SLA: Còn 28 phút</span>
+        </div>
+
+        <!-- Message History -->
+        <div class="message-history">
+          <div class="message-date">Hôm nay, 1 tháng 10</div>
+          
+      <div class="message-line message-customer">
+        <div class="avatar avatar-small avatar-peach">AM</div>
+        <div class="message-body">
+          <p>Tôi vừa thực hiện thanh toán gói Pro 49$ qua thẻ Visa... Tài khoản của tôi đã bị trừ tiền từ phía ngân hàng nhưng màn hình thanh toán lại báo lỗi 500! Đề nghị hỗ trợ kiểm tra và xử lý ngay lập tức cho tôi, tôi đang rất gấp để bàn giao dự án chiều nay!</p>
+          <span>14:32</span>
+        </div>
+      </div>
+    
+          
+        </div>
+
+        <!-- Floating AI Draft Card (Base 4) -->
+        
+
+        <!-- Reply Composer -->
+        <div class="reply-composer">
+          <!-- AI Action Bar -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #f0f2f0;">
+            <button class="ai-draft-trigger-btn">
+              <span>✦ Generate AI Draft</span>
+            </button>
+            <span style="font-size: 10px; color: #68756e;">Phản hồi gửi về: Web Portal Form</span>
+          </div>
+
+          <textarea placeholder="Nhập nội dung phản hồi khách hàng hoặc bấm '✦ Generate AI Draft' để lấy gợi ý chuẩn mực..."></textarea>
+
+          <div class="composer-actions">
+            <div>
+              <button class="icon-button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
+              <button class="icon-button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg></button>
+              <span class="composer-hint">Enter để gửi · Shift + Enter xuống dòng</span>
+            </div>
+            <button class="send-reply" style="">
+              <span>Gửi phản hồi</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+            </button>
+          </div>
+        </div>
+      </section>
+    
+            
+      <!-- COLUMN 3: CUSTOMER DETAILS (width: 275px) -->
+      <section class="customer-details">
+        <div class="details-heading">
+          <h2>Thông tin</h2>
+          <button class="icon-button details-close">✕</button>
+        </div>
+
+        <div class="customer-profile">
+          <div class="avatar avatar-peach">AM</div>
+          <strong>Alex Morgan</strong>
+          <span>Khách hàng từ tháng 3, 2024</span>
+        </div>
+
+        <div class="customer-contact-list">
+          <div>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            <span>
+              <small>Email</small>
+              <strong>alex.morgan@techcorp.io</strong>
+            </span>
+          </div>
+          <div>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+            <span>
+              <small>Điện thoại</small>
+              <strong>+84 901 234 567</strong>
+            </span>
+          </div>
+          <div>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+            <span>
+              <small>Tổ chức</small>
+              <strong>TechCorp IO (Pro Plan)</strong>
+            </span>
+          </div>
+        </div>
+
+        <div class="details-divider"></div>
+
+        <!-- AI Core Analysis -->
+        <div class="ticket-properties" style="background: #fdfefe; border-bottom: 1px solid #edf0ed;">
+          <h3 style="color: #047857;">Phân tích AI Cốt lõi</h3>
+          <div class="property-group">
+            <span>Thái độ cảm xúc</span>
+            <span class="badge badge-frustrated" style="width: fit-content;">Bực bội / Frustrated (88%)</span>
+          </div>
+          <div class="property-group">
+            <span>Mức độ khẩn cấp</span>
+            <span class="badge badge-urgent" style="width: fit-content;">🔥 URGENT (Priority Bump)</span>
+          </div>
+          <div class="property-group">
+            <span>Từ khóa phát hiện</span>
+            <strong style="color: #b91c1c; font-size: 10px;">"ngay lập tức", "lỗi 500"</strong>
+          </div>
+        </div>
+
+        <div class="details-divider"></div>
+
+        <!-- Ticket Properties -->
+        <div class="ticket-properties">
+          <h3>Thuộc tính yêu cầu</h3>
+          <div class="property-group">
+            <span>Trạng thái</span>
+            
+          <div class="status-switch">
+            <button class="status-selected"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16.5 12"/></svg> Chờ xử lý</button>
+            <button><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Đã xong</button>
+          </div>
+        
+          </div>
+          <div class="property-group">
+            <span>Độ ưu tiên</span>
+            <div class="priority-select priority-cao">Cao (Urgent)</div>
+          </div>
+          <div class="property-group">
+            <span>Người phụ trách (Assignee)</span>
+            <div class="assignee-select-wrap">
+              <div class="avatar avatar-small avatar-mint">NP</div>
+              <span style="font-size: 10px; font-weight: 600; color: #344039; flex: 1;">Võ Ngọc Phú (Lead)</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="details-divider"></div>
+
+        <!-- Ticket Context -->
+        <div class="ticket-context">
+          <h3>Ticket hiện tại</h3>
+          <div>
+            <span>Mã yêu cầu</span>
+            <strong>#TK-1082</strong>
+          </div>
+          <div>
+            <span>Kênh tiếp nhận</span>
+            <span class="detail-channel channel-web-form"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg> Web Form</span>
+          </div>
+          <div>
+            <span>Thời gian tạo</span>
+            <strong>Hôm nay, 14:32</strong>
+          </div>
+        </div>
+
+        <button class="customer-history-button">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16.5 12"/></svg>
+          <span>Lịch sử yêu cầu</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+      </section>
+    
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Frame 2: Base 2 Filtered Queue -->
+    <div class="figma-frame-wrapper">
+      <div class="frame-label">
+        <span>Frame 2: Base 2 Filtered Queue</span>
+        <span class="frame-badge">1440 x 900 px (Biến thể lọc AI)</span>
+        <span class="frame-desc">Bấm chip '🔥 AI Urgent Bump', danh sách thu gọn chỉ hiển thị duy nhất 1 vé khẩn cấp, giữ nguyên toàn vẹn Shell</span>
+      </div>
+
+      <div class="figma-frame-1440" id="base-2-filtered-queue">
+        
+      <!-- SIDEBAR (width: 254px) -->
+      <aside class="sidebar">
+        <!-- Brand -->
+        <div class="brand">
+          <div class="brand-mark">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 11a9 9 0 0 1 18 0"/>
+              <path d="M3 11h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5Z"/>
+              <path d="M21 11v5a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3Z"/>
+              <path d="M21 16v2a4 4 0 0 1-4 4h-5"/>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <span class="brand-title">HelpDesk</span>
+            <span class="brand-sub">SUPPORT PLATFORM</span>
+          </div>
+        </div>
+
+        <!-- Workspace Switcher -->
+        <div class="workspace-switcher">
+          <div class="workspace-mark">H</div>
+          <div class="workspace-copy">
+            <strong>HelpDesk</strong>
+            <small>Gói chuyên nghiệp</small>
+          </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
+
+        <!-- Nav Caption -->
+        <div class="nav-caption">KHÔNG GIAN LÀM VIỆC</div>
+
+        <!-- Nav List (4 items matching App.jsx) -->
+        <nav class="nav-list">
+          <a href="#" class="nav-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+            <span>Báo cáo</span>
+          </a>
+          <a href="#" class="nav-item nav-item-active">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+            <span>Hộp thư</span>
+            <span class="nav-badge">4</span>
+          </a>
+          <a href="#" class="nav-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+            <span>Danh sách yêu cầu</span>
+          </a>
+          <a href="#" class="nav-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span>Cài đặt</span>
+          </a>
+        </nav>
+
+        <!-- Sidebar Bottom -->
+        <div class="sidebar-bottom">
+          <div class="help-card">
+            <div class="help-card-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></div>
+            <div>
+              <strong>Cần hỗ trợ?</strong>
+              <p>Chúng tôi luôn ở đây.</p>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </div>
+
+          <div class="profile-row">
+            <div class="avatar avatar-lilac">HP</div>
+            <div class="profile-copy">
+              <strong>Võ Hồng Phúc</strong>
+              <small>Quản trị viên</small>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+          </div>
+        </div>
+      </aside>
+    
+
+        <div class="main-area">
+          
+      <!-- TOPBAR (height: 67px) -->
+      <header class="topbar">
+        <div class="breadcrumbs">
+          <span>Không gian làm việc</span>
+          <span class="breadcrumb-slash">/</span>
+          <strong>Hộp thư</strong>
+        </div>
+
+        <div class="topbar-actions">
+          <div class="search-box">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="text" placeholder="Tìm kiếm..." readonly />
+            <kbd>Ctrl K</kbd>
+          </div>
+
+          <button class="icon-button notification-button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+            <i></i>
+          </button>
+
+          <div class="topbar-divider"></div>
+
+          <div class="user-menu">
+            <div class="avatar avatar-small avatar-lilac">HP</div>
+            <div class="topbar-user-copy">
+              <strong>Võ Hồng Phúc</strong>
+              <small>Quản trị viên</small>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+        </div>
+      </header>
+    
+          <div class="inbox-layout">
+            
+      <!-- COLUMN 1: QUEUE (width: 285px) -->
+      <section class="inbox-queue">
+        <div class="queue-heading">
+          <div>
+            <h1>Hộp thư đến</h1>
+            <p>1 yêu cầu khẩn cấp AI</p>
+          </div>
+          <button class="icon-button queue-compose"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
+        </div>
+
+        <div class="queue-search">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" placeholder="Tìm tên hoặc nội dung..." readonly />
+        </div>
+
+        <div class="queue-filters">
+          <button class="queue-filter">Tất cả <span>1</span></button>
+          <button class="queue-filter">Chưa đọc <span>1</span></button>
+          <button class="filter-chip urgent-chip-active">🔥 AI Urgent Bump (1)</button>
+        </div>
+
+        <div class="conversation-list">
+          
+      <div class="conversation-row conversation-row-active">
+        <div class="avatar avatar-peach">AM</div>
+        <div class="conversation-row-copy">
+          <div class="conversation-row-top">
+            <strong>Alex Morgan</strong>
+            <time>14:32</time>
+          </div>
+          <div class="conversation-row-preview">Thẻ ngân hàng bị trừ tiền nhưng website báo lỗi 500</div>
+          <div class="conversation-row-bottom">
+            <span class="channel-label channel-web-form"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg> Web Form</span>
+            <span class="conversation-ticket">#TK-1082</span>
+            <span class="badge badge-urgent">🔥 AI Urgent</span>
+            <span class="badge badge-frustrated">Bực bội (88%)</span>
+            <span class="unread-dot"></span>
+          </div>
+        </div>
+      </div>
+    
+        </div>
+
+        <div class="queue-footer">
+          <span class="online-indicator"></span>
+          <span>Đồng bộ trực tiếp</span>
+        </div>
+      </section>
+    
+            
+      <!-- COLUMN 2: CONVERSATION (width: 626px) -->
+      <section class="inbox-conversation">
+        <!-- Tầng 1: Conversation Header (height: 69px) -->
+        <div class="conversation-header">
+          <button class="conversation-back">← Quay lại Hàng đợi</button>
+          <div class="avatar avatar-peach">AM</div>
+          <div class="conversation-contact">
+            <strong>Alex Morgan</strong>
+            <span><i></i>Đang hoạt động</span>
+          </div>
+          <span class="conversation-header-channel"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg> Web Form</span>
+          <span class="badge badge-urgent" style="margin-left: auto;">🔥 Priority Bump: URGENT</span>
+          <div class="conversation-tools">
+            <button class="icon-button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 1 0-16 0"/></svg></button>
+            <button class="icon-button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></button>
+          </div>
+        </div>
+
+        <!-- Tầng 2: Ticket Subject (height: 45px) -->
+        <div class="ticket-subject">
+          <span class="subject-ticket-id">#TK-1082</span>
+          <strong>Thẻ ngân hàng bị trừ tiền nhưng website báo lỗi 500</strong>
+          <span style="margin-left: auto; font-size: 10px; color: #68756e; font-weight: 600;">SLA: Còn 28 phút</span>
+        </div>
+
+        <!-- Message History -->
+        <div class="message-history">
+          <div class="message-date">Hôm nay, 1 tháng 10</div>
+          
+      <div class="message-line message-customer">
+        <div class="avatar avatar-small avatar-peach">AM</div>
+        <div class="message-body">
+          <p>Tôi vừa thực hiện thanh toán gói Pro 49$ qua thẻ Visa... Tài khoản của tôi đã bị trừ tiền từ phía ngân hàng nhưng màn hình thanh toán lại báo lỗi 500! Đề nghị hỗ trợ kiểm tra và xử lý ngay lập tức cho tôi, tôi đang rất gấp để bàn giao dự án chiều nay!</p>
+          <span>14:32</span>
+        </div>
+      </div>
+    
+          
+        </div>
+
+        <!-- Floating AI Draft Card (Base 4) -->
+        
+
+        <!-- Reply Composer -->
+        <div class="reply-composer">
+          <!-- AI Action Bar -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #f0f2f0;">
+            <button class="ai-draft-trigger-btn">
+              <span>✦ Generate AI Draft</span>
+            </button>
+            <span style="font-size: 10px; color: #68756e;">Phản hồi gửi về: Web Portal Form</span>
+          </div>
+
+          <textarea placeholder="Nhập nội dung phản hồi khách hàng hoặc bấm '✦ Generate AI Draft' để lấy gợi ý chuẩn mực..."></textarea>
+
+          <div class="composer-actions">
+            <div>
+              <button class="icon-button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
+              <button class="icon-button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg></button>
+              <span class="composer-hint">Enter để gửi · Shift + Enter xuống dòng</span>
+            </div>
+            <button class="send-reply" style="">
+              <span>Gửi phản hồi</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+            </button>
+          </div>
+        </div>
+      </section>
+    
+            
+      <!-- COLUMN 3: CUSTOMER DETAILS (width: 275px) -->
+      <section class="customer-details">
+        <div class="details-heading">
+          <h2>Thông tin</h2>
+          <button class="icon-button details-close">✕</button>
+        </div>
+
+        <div class="customer-profile">
+          <div class="avatar avatar-peach">AM</div>
+          <strong>Alex Morgan</strong>
+          <span>Khách hàng từ tháng 3, 2024</span>
+        </div>
+
+        <div class="customer-contact-list">
+          <div>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            <span>
+              <small>Email</small>
+              <strong>alex.morgan@techcorp.io</strong>
+            </span>
+          </div>
+          <div>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+            <span>
+              <small>Điện thoại</small>
+              <strong>+84 901 234 567</strong>
+            </span>
+          </div>
+          <div>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+            <span>
+              <small>Tổ chức</small>
+              <strong>TechCorp IO (Pro Plan)</strong>
+            </span>
+          </div>
+        </div>
+
+        <div class="details-divider"></div>
+
+        <!-- AI Core Analysis -->
+        <div class="ticket-properties" style="background: #fdfefe; border-bottom: 1px solid #edf0ed;">
+          <h3 style="color: #047857;">Phân tích AI Cốt lõi</h3>
+          <div class="property-group">
+            <span>Thái độ cảm xúc</span>
+            <span class="badge badge-frustrated" style="width: fit-content;">Bực bội / Frustrated (88%)</span>
+          </div>
+          <div class="property-group">
+            <span>Mức độ khẩn cấp</span>
+            <span class="badge badge-urgent" style="width: fit-content;">🔥 URGENT (Priority Bump)</span>
+          </div>
+          <div class="property-group">
+            <span>Từ khóa phát hiện</span>
+            <strong style="color: #b91c1c; font-size: 10px;">"ngay lập tức", "lỗi 500"</strong>
+          </div>
+        </div>
+
+        <div class="details-divider"></div>
+
+        <!-- Ticket Properties -->
+        <div class="ticket-properties">
+          <h3>Thuộc tính yêu cầu</h3>
+          <div class="property-group">
+            <span>Trạng thái</span>
+            
+          <div class="status-switch">
+            <button class="status-selected"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16.5 12"/></svg> Chờ xử lý</button>
+            <button><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Đã xong</button>
+          </div>
+        
+          </div>
+          <div class="property-group">
+            <span>Độ ưu tiên</span>
+            <div class="priority-select priority-cao">Cao (Urgent)</div>
+          </div>
+          <div class="property-group">
+            <span>Người phụ trách (Assignee)</span>
+            <div class="assignee-select-wrap">
+              <div class="avatar avatar-small avatar-mint">NP</div>
+              <span style="font-size: 10px; font-weight: 600; color: #344039; flex: 1;">Võ Ngọc Phú (Lead)</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="details-divider"></div>
+
+        <!-- Ticket Context -->
+        <div class="ticket-context">
+          <h3>Ticket hiện tại</h3>
+          <div>
+            <span>Mã yêu cầu</span>
+            <strong>#TK-1082</strong>
+          </div>
+          <div>
+            <span>Kênh tiếp nhận</span>
+            <span class="detail-channel channel-web-form"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg> Web Form</span>
+          </div>
+          <div>
+            <span>Thời gian tạo</span>
+            <strong>Hôm nay, 14:32</strong>
+          </div>
+        </div>
+
+        <button class="customer-history-button">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16.5 12"/></svg>
+          <span>Lịch sử yêu cầu</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+      </section>
+    
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Frame 3: Base 3 Ticket Detail Timeline -->
+    <div class="figma-frame-wrapper">
+      <div class="frame-label">
+        <span>Frame 3: Base 3 Ticket Detail Timeline</span>
+        <span class="frame-badge">1440 x 900 px (Màn hình Chi tiết Hội thoại)</span>
+        <span class="frame-desc">Nút '← Quay lại Hàng đợi', Timeline chat lỗi 500, nút '✦ Generate AI Draft', Dropdown Assignee Võ Ngọc Phú</span>
+      </div>
+
+      <div class="figma-frame-1440" id="base-3-ticket-detail-timeline">
+        
+      <!-- SIDEBAR (width: 254px) -->
+      <aside class="sidebar">
+        <!-- Brand -->
+        <div class="brand">
+          <div class="brand-mark">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 11a9 9 0 0 1 18 0"/>
+              <path d="M3 11h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5Z"/>
+              <path d="M21 11v5a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3Z"/>
+              <path d="M21 16v2a4 4 0 0 1-4 4h-5"/>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <span class="brand-title">HelpDesk</span>
+            <span class="brand-sub">SUPPORT PLATFORM</span>
+          </div>
+        </div>
+
+        <!-- Workspace Switcher -->
+        <div class="workspace-switcher">
+          <div class="workspace-mark">H</div>
+          <div class="workspace-copy">
+            <strong>HelpDesk</strong>
+            <small>Gói chuyên nghiệp</small>
+          </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
+
+        <!-- Nav Caption -->
+        <div class="nav-caption">KHÔNG GIAN LÀM VIỆC</div>
+
+        <!-- Nav List (4 items matching App.jsx) -->
+        <nav class="nav-list">
+          <a href="#" class="nav-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+            <span>Báo cáo</span>
+          </a>
+          <a href="#" class="nav-item nav-item-active">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+            <span>Hộp thư</span>
+            <span class="nav-badge">4</span>
+          </a>
+          <a href="#" class="nav-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+            <span>Danh sách yêu cầu</span>
+          </a>
+          <a href="#" class="nav-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span>Cài đặt</span>
+          </a>
+        </nav>
+
+        <!-- Sidebar Bottom -->
+        <div class="sidebar-bottom">
+          <div class="help-card">
+            <div class="help-card-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></div>
+            <div>
+              <strong>Cần hỗ trợ?</strong>
+              <p>Chúng tôi luôn ở đây.</p>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </div>
+
+          <div class="profile-row">
+            <div class="avatar avatar-lilac">HP</div>
+            <div class="profile-copy">
+              <strong>Võ Hồng Phúc</strong>
+              <small>Quản trị viên</small>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+          </div>
+        </div>
+      </aside>
+    
+
+        <div class="main-area">
+          
+      <!-- TOPBAR (height: 67px) -->
+      <header class="topbar">
+        <div class="breadcrumbs">
+          <span>Không gian làm việc</span>
+          <span class="breadcrumb-slash">/</span>
+          <strong>Hộp thư</strong>
+        </div>
+
+        <div class="topbar-actions">
+          <div class="search-box">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="text" placeholder="Tìm kiếm..." readonly />
+            <kbd>Ctrl K</kbd>
+          </div>
+
+          <button class="icon-button notification-button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+            <i></i>
+          </button>
+
+          <div class="topbar-divider"></div>
+
+          <div class="user-menu">
+            <div class="avatar avatar-small avatar-lilac">HP</div>
+            <div class="topbar-user-copy">
+              <strong>Võ Hồng Phúc</strong>
+              <small>Quản trị viên</small>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+        </div>
+      </header>
+    
+          <div class="inbox-layout">
+            
+      <!-- COLUMN 1: QUEUE (width: 285px) -->
+      <section class="inbox-queue">
+        <div class="queue-heading">
+          <div>
+            <h1>Hộp thư đến</h1>
+            <p>2 tin nhắn chưa đọc</p>
+          </div>
+          <button class="icon-button queue-compose"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
+        </div>
+
+        <div class="queue-search">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" placeholder="Tìm tên hoặc nội dung..." readonly />
+        </div>
+
+        <div class="queue-filters">
+          <button class="queue-filter queue-filter-active">Tất cả <span>4</span></button>
+          <button class="queue-filter">Chưa đọc <span>2</span></button>
+          <button class="filter-chip urgent-chip">🔥 AI Urgent Bump</button>
+        </div>
+
+        <div class="conversation-list">
+          
+      <div class="conversation-row conversation-row-active">
+        <div class="avatar avatar-peach">AM</div>
+        <div class="conversation-row-copy">
+          <div class="conversation-row-top">
+            <strong>Alex Morgan</strong>
+            <time>14:32</time>
+          </div>
+          <div class="conversation-row-preview">Thẻ ngân hàng bị trừ tiền nhưng website báo lỗi 500</div>
+          <div class="conversation-row-bottom">
+            <span class="channel-label channel-web-form"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg> Web Form</span>
+            <span class="conversation-ticket">#TK-1082</span>
+            <span class="badge badge-urgent">🔥 AI Urgent</span>
+            <span class="badge badge-frustrated">Bực bội (88%)</span>
+            <span class="unread-dot"></span>
+          </div>
+        </div>
+      </div>
+    
+      <div class="conversation-row">
+        <div class="avatar avatar-blue">SC</div>
+        <div class="conversation-row-copy">
+          <div class="conversation-row-top">
+            <strong>Sarah Connor</strong>
+            <time>14:15</time>
+          </div>
+          <div class="conversation-row-preview">Hỏi về quy trình gia hạn hợp đồng doanh nghiệp</div>
+          <div class="conversation-row-bottom">
+            <span class="channel-label channel-email"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> Email</span>
+            <span class="conversation-ticket">#TK-1081</span>
+            <span class="badge badge-positive">Tích cực (92%)</span>
+          </div>
+        </div>
+      </div>
+    
+      <div class="conversation-row">
+        <div class="avatar avatar-lilac">DB</div>
+        <div class="conversation-row-copy">
+          <div class="conversation-row-top">
+            <strong>David Beckham</strong>
+            <time>13:30</time>
+          </div>
+          <div class="conversation-row-preview">Cần hỗ trợ tích hợp Webhook Telegram</div>
+          <div class="conversation-row-bottom">
+            <span class="channel-label channel-telegram"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg> Telegram</span>
+            <span class="conversation-ticket">#TK-1080</span>
+            <span class="badge badge-neutral">Trung tính (70%)</span>
+          </div>
+        </div>
+      </div>
+    
+      <div class="conversation-row">
+        <div class="avatar avatar-mint">EW</div>
+        <div class="conversation-row-copy">
+          <div class="conversation-row-top">
+            <strong>Emma Watson</strong>
+            <time>11:20</time>
+          </div>
+          <div class="conversation-row-preview">Xác nhận đã nhận lại mã kích hoạt</div>
+          <div class="conversation-row-bottom">
+            <span class="channel-label" style="color: #059669;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg> Livechat</span>
+            <span class="conversation-ticket">#TK-1079</span>
+            <span class="badge badge-resolved">Đã giải quyết</span>
+          </div>
+        </div>
+      </div>
+    
+        </div>
+
+        <div class="queue-footer">
+          <span class="online-indicator"></span>
+          <span>Đồng bộ trực tiếp</span>
+        </div>
+      </section>
+    
+            
+      <!-- COLUMN 2: CONVERSATION (width: 626px) -->
+      <section class="inbox-conversation">
+        <!-- Tầng 1: Conversation Header (height: 69px) -->
+        <div class="conversation-header">
+          <button class="conversation-back">← Quay lại Hàng đợi</button>
+          <div class="avatar avatar-peach">AM</div>
+          <div class="conversation-contact">
+            <strong>Alex Morgan</strong>
+            <span><i></i>Đang hoạt động</span>
+          </div>
+          <span class="conversation-header-channel"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg> Web Form</span>
+          <span class="badge badge-urgent" style="margin-left: auto;">🔥 Priority Bump: URGENT</span>
+          <div class="conversation-tools">
+            <button class="icon-button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 1 0-16 0"/></svg></button>
+            <button class="icon-button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></button>
+          </div>
+        </div>
+
+        <!-- Tầng 2: Ticket Subject (height: 45px) -->
+        <div class="ticket-subject">
+          <span class="subject-ticket-id">#TK-1082</span>
+          <strong>Thẻ ngân hàng bị trừ tiền nhưng website báo lỗi 500</strong>
+          <span style="margin-left: auto; font-size: 10px; color: #68756e; font-weight: 600;">SLA: Còn 28 phút</span>
+        </div>
+
+        <!-- Message History -->
+        <div class="message-history">
+          <div class="message-date">Hôm nay, 1 tháng 10</div>
+          
+      <div class="message-line message-customer">
+        <div class="avatar avatar-small avatar-peach">AM</div>
+        <div class="message-body">
+          <p>Tôi vừa thực hiện thanh toán gói Pro 49$ qua thẻ Visa... Tài khoản của tôi đã bị trừ tiền từ phía ngân hàng nhưng màn hình thanh toán lại báo lỗi 500! Đề nghị hỗ trợ kiểm tra và xử lý ngay lập tức cho tôi, tôi đang rất gấp để bàn giao dự án chiều nay!</p>
+          <span>14:32</span>
+        </div>
+      </div>
+    
+          
+        </div>
+
+        <!-- Floating AI Draft Card (Base 4) -->
+        
+
+        <!-- Reply Composer -->
+        <div class="reply-composer">
+          <!-- AI Action Bar -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #f0f2f0;">
+            <button class="ai-draft-trigger-btn">
+              <span>✦ Generate AI Draft</span>
+            </button>
+            <span style="font-size: 10px; color: #68756e;">Phản hồi gửi về: Web Portal Form</span>
+          </div>
+
+          <textarea placeholder="Nhập nội dung phản hồi khách hàng hoặc bấm '✦ Generate AI Draft' để lấy gợi ý chuẩn mực..."></textarea>
+
+          <div class="composer-actions">
+            <div>
+              <button class="icon-button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
+              <button class="icon-button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg></button>
+              <span class="composer-hint">Enter để gửi · Shift + Enter xuống dòng</span>
+            </div>
+            <button class="send-reply" style="">
+              <span>Gửi phản hồi</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+            </button>
+          </div>
+        </div>
+      </section>
+    
+            
+      <!-- COLUMN 3: CUSTOMER DETAILS (width: 275px) -->
+      <section class="customer-details">
+        <div class="details-heading">
+          <h2>Thông tin</h2>
+          <button class="icon-button details-close">✕</button>
+        </div>
+
+        <div class="customer-profile">
+          <div class="avatar avatar-peach">AM</div>
+          <strong>Alex Morgan</strong>
+          <span>Khách hàng từ tháng 3, 2024</span>
+        </div>
+
+        <div class="customer-contact-list">
+          <div>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            <span>
+              <small>Email</small>
+              <strong>alex.morgan@techcorp.io</strong>
+            </span>
+          </div>
+          <div>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+            <span>
+              <small>Điện thoại</small>
+              <strong>+84 901 234 567</strong>
+            </span>
+          </div>
+          <div>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+            <span>
+              <small>Tổ chức</small>
+              <strong>TechCorp IO (Pro Plan)</strong>
+            </span>
+          </div>
+        </div>
+
+        <div class="details-divider"></div>
+
+        <!-- AI Core Analysis -->
+        <div class="ticket-properties" style="background: #fdfefe; border-bottom: 1px solid #edf0ed;">
+          <h3 style="color: #047857;">Phân tích AI Cốt lõi</h3>
+          <div class="property-group">
+            <span>Thái độ cảm xúc</span>
+            <span class="badge badge-frustrated" style="width: fit-content;">Bực bội / Frustrated (88%)</span>
+          </div>
+          <div class="property-group">
+            <span>Mức độ khẩn cấp</span>
+            <span class="badge badge-urgent" style="width: fit-content;">🔥 URGENT (Priority Bump)</span>
+          </div>
+          <div class="property-group">
+            <span>Từ khóa phát hiện</span>
+            <strong style="color: #b91c1c; font-size: 10px;">"ngay lập tức", "lỗi 500"</strong>
+          </div>
+        </div>
+
+        <div class="details-divider"></div>
+
+        <!-- Ticket Properties -->
+        <div class="ticket-properties">
+          <h3>Thuộc tính yêu cầu</h3>
+          <div class="property-group">
+            <span>Trạng thái</span>
+            
+          <div class="status-switch">
+            <button class="status-selected"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16.5 12"/></svg> Chờ xử lý</button>
+            <button><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Đã xong</button>
+          </div>
+        
+          </div>
+          <div class="property-group">
+            <span>Độ ưu tiên</span>
+            <div class="priority-select priority-cao">Cao (Urgent)</div>
+          </div>
+          <div class="property-group">
+            <span>Người phụ trách (Assignee)</span>
+            <div class="assignee-select-wrap">
+              <div class="avatar avatar-small avatar-mint">NP</div>
+              <span style="font-size: 10px; font-weight: 600; color: #344039; flex: 1;">Võ Ngọc Phú (Lead)</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="details-divider"></div>
+
+        <!-- Ticket Context -->
+        <div class="ticket-context">
+          <h3>Ticket hiện tại</h3>
+          <div>
+            <span>Mã yêu cầu</span>
+            <strong>#TK-1082</strong>
+          </div>
+          <div>
+            <span>Kênh tiếp nhận</span>
+            <span class="detail-channel channel-web-form"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg> Web Form</span>
+          </div>
+          <div>
+            <span>Thời gian tạo</span>
+            <strong>Hôm nay, 14:32</strong>
+          </div>
+        </div>
+
+        <button class="customer-history-button">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16.5 12"/></svg>
+          <span>Lịch sử yêu cầu</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+      </section>
+    
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Frame 4: Base 4 AI Draft Card -->
+    <div class="figma-frame-wrapper">
+      <div class="frame-label">
+        <span>Frame 4: Base 4 AI Draft Card</span>
+        <span class="frame-badge">1440 x 900 px (Floating Overlay)</span>
+        <span class="frame-desc">Bấm '✦ Generate AI Draft', Card nháp AI nổi lên với độ chuẩn 94%, 3 nút thao tác, đầy đủ 3 cột & Shell</span>
+      </div>
+
+      <div class="figma-frame-1440" id="base-4-ai-draft-card">
+        
+      <!-- SIDEBAR (width: 254px) -->
+      <aside class="sidebar">
+        <!-- Brand -->
+        <div class="brand">
+          <div class="brand-mark">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 11a9 9 0 0 1 18 0"/>
+              <path d="M3 11h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5Z"/>
+              <path d="M21 11v5a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3Z"/>
+              <path d="M21 16v2a4 4 0 0 1-4 4h-5"/>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <span class="brand-title">HelpDesk</span>
+            <span class="brand-sub">SUPPORT PLATFORM</span>
+          </div>
+        </div>
+
+        <!-- Workspace Switcher -->
+        <div class="workspace-switcher">
+          <div class="workspace-mark">H</div>
+          <div class="workspace-copy">
+            <strong>HelpDesk</strong>
+            <small>Gói chuyên nghiệp</small>
+          </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
+
+        <!-- Nav Caption -->
+        <div class="nav-caption">KHÔNG GIAN LÀM VIỆC</div>
+
+        <!-- Nav List (4 items matching App.jsx) -->
+        <nav class="nav-list">
+          <a href="#" class="nav-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+            <span>Báo cáo</span>
+          </a>
+          <a href="#" class="nav-item nav-item-active">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+            <span>Hộp thư</span>
+            <span class="nav-badge">4</span>
+          </a>
+          <a href="#" class="nav-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+            <span>Danh sách yêu cầu</span>
+          </a>
+          <a href="#" class="nav-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span>Cài đặt</span>
+          </a>
+        </nav>
+
+        <!-- Sidebar Bottom -->
+        <div class="sidebar-bottom">
+          <div class="help-card">
+            <div class="help-card-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></div>
+            <div>
+              <strong>Cần hỗ trợ?</strong>
+              <p>Chúng tôi luôn ở đây.</p>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </div>
+
+          <div class="profile-row">
+            <div class="avatar avatar-lilac">HP</div>
+            <div class="profile-copy">
+              <strong>Võ Hồng Phúc</strong>
+              <small>Quản trị viên</small>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+          </div>
+        </div>
+      </aside>
+    
+
+        <div class="main-area">
+          
+      <!-- TOPBAR (height: 67px) -->
+      <header class="topbar">
+        <div class="breadcrumbs">
+          <span>Không gian làm việc</span>
+          <span class="breadcrumb-slash">/</span>
+          <strong>Hộp thư</strong>
+        </div>
+
+        <div class="topbar-actions">
+          <div class="search-box">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="text" placeholder="Tìm kiếm..." readonly />
+            <kbd>Ctrl K</kbd>
+          </div>
+
+          <button class="icon-button notification-button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+            <i></i>
+          </button>
+
+          <div class="topbar-divider"></div>
+
+          <div class="user-menu">
+            <div class="avatar avatar-small avatar-lilac">HP</div>
+            <div class="topbar-user-copy">
+              <strong>Võ Hồng Phúc</strong>
+              <small>Quản trị viên</small>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+        </div>
+      </header>
+    
+          <div class="inbox-layout">
+            
+      <!-- COLUMN 1: QUEUE (width: 285px) -->
+      <section class="inbox-queue">
+        <div class="queue-heading">
+          <div>
+            <h1>Hộp thư đến</h1>
+            <p>2 tin nhắn chưa đọc</p>
+          </div>
+          <button class="icon-button queue-compose"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
+        </div>
+
+        <div class="queue-search">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" placeholder="Tìm tên hoặc nội dung..." readonly />
+        </div>
+
+        <div class="queue-filters">
+          <button class="queue-filter queue-filter-active">Tất cả <span>4</span></button>
+          <button class="queue-filter">Chưa đọc <span>2</span></button>
+          <button class="filter-chip urgent-chip">🔥 AI Urgent Bump</button>
+        </div>
+
+        <div class="conversation-list">
+          
+      <div class="conversation-row conversation-row-active">
+        <div class="avatar avatar-peach">AM</div>
+        <div class="conversation-row-copy">
+          <div class="conversation-row-top">
+            <strong>Alex Morgan</strong>
+            <time>14:32</time>
+          </div>
+          <div class="conversation-row-preview">Thẻ ngân hàng bị trừ tiền nhưng website báo lỗi 500</div>
+          <div class="conversation-row-bottom">
+            <span class="channel-label channel-web-form"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg> Web Form</span>
+            <span class="conversation-ticket">#TK-1082</span>
+            <span class="badge badge-urgent">🔥 AI Urgent</span>
+            <span class="badge badge-frustrated">Bực bội (88%)</span>
+            <span class="unread-dot"></span>
+          </div>
+        </div>
+      </div>
+    
+      <div class="conversation-row">
+        <div class="avatar avatar-blue">SC</div>
+        <div class="conversation-row-copy">
+          <div class="conversation-row-top">
+            <strong>Sarah Connor</strong>
+            <time>14:15</time>
+          </div>
+          <div class="conversation-row-preview">Hỏi về quy trình gia hạn hợp đồng doanh nghiệp</div>
+          <div class="conversation-row-bottom">
+            <span class="channel-label channel-email"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> Email</span>
+            <span class="conversation-ticket">#TK-1081</span>
+            <span class="badge badge-positive">Tích cực (92%)</span>
+          </div>
+        </div>
+      </div>
+    
+      <div class="conversation-row">
+        <div class="avatar avatar-lilac">DB</div>
+        <div class="conversation-row-copy">
+          <div class="conversation-row-top">
+            <strong>David Beckham</strong>
+            <time>13:30</time>
+          </div>
+          <div class="conversation-row-preview">Cần hỗ trợ tích hợp Webhook Telegram</div>
+          <div class="conversation-row-bottom">
+            <span class="channel-label channel-telegram"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg> Telegram</span>
+            <span class="conversation-ticket">#TK-1080</span>
+            <span class="badge badge-neutral">Trung tính (70%)</span>
+          </div>
+        </div>
+      </div>
+    
+      <div class="conversation-row">
+        <div class="avatar avatar-mint">EW</div>
+        <div class="conversation-row-copy">
+          <div class="conversation-row-top">
+            <strong>Emma Watson</strong>
+            <time>11:20</time>
+          </div>
+          <div class="conversation-row-preview">Xác nhận đã nhận lại mã kích hoạt</div>
+          <div class="conversation-row-bottom">
+            <span class="channel-label" style="color: #059669;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg> Livechat</span>
+            <span class="conversation-ticket">#TK-1079</span>
+            <span class="badge badge-resolved">Đã giải quyết</span>
+          </div>
+        </div>
+      </div>
+    
+        </div>
+
+        <div class="queue-footer">
+          <span class="online-indicator"></span>
+          <span>Đồng bộ trực tiếp</span>
+        </div>
+      </section>
+    
+            
+      <!-- COLUMN 2: CONVERSATION (width: 626px) -->
+      <section class="inbox-conversation">
+        <!-- Tầng 1: Conversation Header (height: 69px) -->
+        <div class="conversation-header">
+          <button class="conversation-back">← Quay lại Hàng đợi</button>
+          <div class="avatar avatar-peach">AM</div>
+          <div class="conversation-contact">
+            <strong>Alex Morgan</strong>
+            <span><i></i>Đang hoạt động</span>
+          </div>
+          <span class="conversation-header-channel"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg> Web Form</span>
+          <span class="badge badge-urgent" style="margin-left: auto;">🔥 Priority Bump: URGENT</span>
+          <div class="conversation-tools">
+            <button class="icon-button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 1 0-16 0"/></svg></button>
+            <button class="icon-button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></button>
+          </div>
+        </div>
+
+        <!-- Tầng 2: Ticket Subject (height: 45px) -->
+        <div class="ticket-subject">
+          <span class="subject-ticket-id">#TK-1082</span>
+          <strong>Thẻ ngân hàng bị trừ tiền nhưng website báo lỗi 500</strong>
+          <span style="margin-left: auto; font-size: 10px; color: #68756e; font-weight: 600;">SLA: Còn 28 phút</span>
+        </div>
+
+        <!-- Message History -->
+        <div class="message-history">
+          <div class="message-date">Hôm nay, 1 tháng 10</div>
+          
+      <div class="message-line message-customer">
+        <div class="avatar avatar-small avatar-peach">AM</div>
+        <div class="message-body">
+          <p>Tôi vừa thực hiện thanh toán gói Pro 49$ qua thẻ Visa... Tài khoản của tôi đã bị trừ tiền từ phía ngân hàng nhưng màn hình thanh toán lại báo lỗi 500! Đề nghị hỗ trợ kiểm tra và xử lý ngay lập tức cho tôi, tôi đang rất gấp để bàn giao dự án chiều nay!</p>
+          <span>14:32</span>
+        </div>
+      </div>
+    
+          
+        </div>
+
+        <!-- Floating AI Draft Card (Base 4) -->
+        
+          <!-- FLOATING AI DRAFT CARD (BASE 4) -->
+          <div class="ai-draft-overlay-card">
+            <div class="ai-card-header">
+              <div class="ai-card-title">
+                <span>✦ AI Auto-Draft Smart Reply</span>
+                <span class="ai-confidence-badge">Độ chuẩn mực: 94% (High Confidence)</span>
+              </div>
+              <button class="btn-dismiss">✕ Đóng nháp</button>
+            </div>
+
+            <div class="ai-card-body">
+              "Chào bạn Alex, HelpDesk+ đã ghi nhận sự cố giao dịch #TK-1082 của bạn. Chúng tôi rất tiếc vì trải nghiệm gián đoạn này. Đội ngũ kỹ thuật đang phối hợp với cổng thanh toán để tra soát giao dịch 49$ và sẽ hoàn tất kích hoạt gói Pro cho bạn trong vòng 30 phút tới. Bạn không cần thực hiện thêm thao tác thanh toán nào khác."
+            </div>
+
+            <div class="ai-card-actions">
+              <div class="ai-actions-left">
+                <button class="btn-apply-draft">
+                  <span>⚡ 1-Click Apply & Insert</span>
+                </button>
+                <button class="btn-regenerate">
+                  <span>↻ Sinh mẫu khác (Regenerate)</span>
+                </button>
+              </div>
+              <span style="font-size: 11px; color: #047857; font-weight: 600;">Bấm 1-Click để đưa thẳng văn bản vào ô soạn thảo</span>
+            </div>
+          </div>
+        
+
+        <!-- Reply Composer -->
+        <div class="reply-composer">
+          <!-- AI Action Bar -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #f0f2f0;">
+            <button class="ai-draft-trigger-btn">
+              <span>✦ Generate AI Draft</span>
+            </button>
+            <span style="font-size: 10px; color: #68756e;">Phản hồi gửi về: Web Portal Form</span>
+          </div>
+
+          <textarea placeholder="Đang chờ bạn chọn hành động từ bản nháp AI..."></textarea>
+
+          <div class="composer-actions">
+            <div>
+              <button class="icon-button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
+              <button class="icon-button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg></button>
+              <span class="composer-hint">Enter để gửi · Shift + Enter xuống dòng</span>
+            </div>
+            <button class="send-reply" style="opacity: 0.5;">
+              <span>Gửi phản hồi</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+            </button>
+          </div>
+        </div>
+      </section>
+    
+            
+      <!-- COLUMN 3: CUSTOMER DETAILS (width: 275px) -->
+      <section class="customer-details">
+        <div class="details-heading">
+          <h2>Thông tin</h2>
+          <button class="icon-button details-close">✕</button>
+        </div>
+
+        <div class="customer-profile">
+          <div class="avatar avatar-peach">AM</div>
+          <strong>Alex Morgan</strong>
+          <span>Khách hàng từ tháng 3, 2024</span>
+        </div>
+
+        <div class="customer-contact-list">
+          <div>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            <span>
+              <small>Email</small>
+              <strong>alex.morgan@techcorp.io</strong>
+            </span>
+          </div>
+          <div>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+            <span>
+              <small>Điện thoại</small>
+              <strong>+84 901 234 567</strong>
+            </span>
+          </div>
+          <div>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+            <span>
+              <small>Tổ chức</small>
+              <strong>TechCorp IO (Pro Plan)</strong>
+            </span>
+          </div>
+        </div>
+
+        <div class="details-divider"></div>
+
+        <!-- AI Core Analysis -->
+        <div class="ticket-properties" style="background: #fdfefe; border-bottom: 1px solid #edf0ed;">
+          <h3 style="color: #047857;">Phân tích AI Cốt lõi</h3>
+          <div class="property-group">
+            <span>Thái độ cảm xúc</span>
+            <span class="badge badge-frustrated" style="width: fit-content;">Bực bội / Frustrated (88%)</span>
+          </div>
+          <div class="property-group">
+            <span>Mức độ khẩn cấp</span>
+            <span class="badge badge-urgent" style="width: fit-content;">🔥 URGENT (Priority Bump)</span>
+          </div>
+          <div class="property-group">
+            <span>Từ khóa phát hiện</span>
+            <strong style="color: #b91c1c; font-size: 10px;">"ngay lập tức", "lỗi 500"</strong>
+          </div>
+        </div>
+
+        <div class="details-divider"></div>
+
+        <!-- Ticket Properties -->
+        <div class="ticket-properties">
+          <h3>Thuộc tính yêu cầu</h3>
+          <div class="property-group">
+            <span>Trạng thái</span>
+            
+          <div class="status-switch">
+            <button class="status-selected"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16.5 12"/></svg> Chờ xử lý</button>
+            <button><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Đã xong</button>
+          </div>
+        
+          </div>
+          <div class="property-group">
+            <span>Độ ưu tiên</span>
+            <div class="priority-select priority-cao">Cao (Urgent)</div>
+          </div>
+          <div class="property-group">
+            <span>Người phụ trách (Assignee)</span>
+            <div class="assignee-select-wrap">
+              <div class="avatar avatar-small avatar-mint">NP</div>
+              <span style="font-size: 10px; font-weight: 600; color: #344039; flex: 1;">Võ Ngọc Phú (Lead)</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="details-divider"></div>
+
+        <!-- Ticket Context -->
+        <div class="ticket-context">
+          <h3>Ticket hiện tại</h3>
+          <div>
+            <span>Mã yêu cầu</span>
+            <strong>#TK-1082</strong>
+          </div>
+          <div>
+            <span>Kênh tiếp nhận</span>
+            <span class="detail-channel channel-web-form"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg> Web Form</span>
+          </div>
+          <div>
+            <span>Thời gian tạo</span>
+            <strong>Hôm nay, 14:32</strong>
+          </div>
+        </div>
+
+        <button class="customer-history-button">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16.5 12"/></svg>
+          <span>Lịch sử yêu cầu</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+      </section>
+    
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Frame 5: Base 4.1 Composer Filled -->
+    <div class="figma-frame-wrapper">
+      <div class="frame-label">
+        <span>Frame 5: Base 4.1 Composer Filled</span>
+        <span class="frame-badge">1440 x 900 px (Biến thể)</span>
+        <span class="frame-desc">Bản nháp AI đã được tự động điền vào Textarea, nút Gửi chuyển sang màu xanh đậm kích hoạt</span>
+      </div>
+
+      <div class="figma-frame-1440" id="base-4-1-composer-filled">
+        
+      <!-- SIDEBAR (width: 254px) -->
+      <aside class="sidebar">
+        <!-- Brand -->
+        <div class="brand">
+          <div class="brand-mark">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 11a9 9 0 0 1 18 0"/>
+              <path d="M3 11h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5Z"/>
+              <path d="M21 11v5a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3Z"/>
+              <path d="M21 16v2a4 4 0 0 1-4 4h-5"/>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <span class="brand-title">HelpDesk</span>
+            <span class="brand-sub">SUPPORT PLATFORM</span>
+          </div>
+        </div>
+
+        <!-- Workspace Switcher -->
+        <div class="workspace-switcher">
+          <div class="workspace-mark">H</div>
+          <div class="workspace-copy">
+            <strong>HelpDesk</strong>
+            <small>Gói chuyên nghiệp</small>
+          </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
+
+        <!-- Nav Caption -->
+        <div class="nav-caption">KHÔNG GIAN LÀM VIỆC</div>
+
+        <!-- Nav List (4 items matching App.jsx) -->
+        <nav class="nav-list">
+          <a href="#" class="nav-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+            <span>Báo cáo</span>
+          </a>
+          <a href="#" class="nav-item nav-item-active">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+            <span>Hộp thư</span>
+            <span class="nav-badge">4</span>
+          </a>
+          <a href="#" class="nav-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+            <span>Danh sách yêu cầu</span>
+          </a>
+          <a href="#" class="nav-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span>Cài đặt</span>
+          </a>
+        </nav>
+
+        <!-- Sidebar Bottom -->
+        <div class="sidebar-bottom">
+          <div class="help-card">
+            <div class="help-card-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></div>
+            <div>
+              <strong>Cần hỗ trợ?</strong>
+              <p>Chúng tôi luôn ở đây.</p>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </div>
+
+          <div class="profile-row">
+            <div class="avatar avatar-lilac">HP</div>
+            <div class="profile-copy">
+              <strong>Võ Hồng Phúc</strong>
+              <small>Quản trị viên</small>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+          </div>
+        </div>
+      </aside>
+    
+
+        <div class="main-area">
+          
+      <!-- TOPBAR (height: 67px) -->
+      <header class="topbar">
+        <div class="breadcrumbs">
+          <span>Không gian làm việc</span>
+          <span class="breadcrumb-slash">/</span>
+          <strong>Hộp thư</strong>
+        </div>
+
+        <div class="topbar-actions">
+          <div class="search-box">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="text" placeholder="Tìm kiếm..." readonly />
+            <kbd>Ctrl K</kbd>
+          </div>
+
+          <button class="icon-button notification-button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+            <i></i>
+          </button>
+
+          <div class="topbar-divider"></div>
+
+          <div class="user-menu">
+            <div class="avatar avatar-small avatar-lilac">HP</div>
+            <div class="topbar-user-copy">
+              <strong>Võ Hồng Phúc</strong>
+              <small>Quản trị viên</small>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+        </div>
+      </header>
+    
+          <div class="inbox-layout">
+            
+      <!-- COLUMN 1: QUEUE (width: 285px) -->
+      <section class="inbox-queue">
+        <div class="queue-heading">
+          <div>
+            <h1>Hộp thư đến</h1>
+            <p>2 tin nhắn chưa đọc</p>
+          </div>
+          <button class="icon-button queue-compose"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
+        </div>
+
+        <div class="queue-search">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" placeholder="Tìm tên hoặc nội dung..." readonly />
+        </div>
+
+        <div class="queue-filters">
+          <button class="queue-filter queue-filter-active">Tất cả <span>4</span></button>
+          <button class="queue-filter">Chưa đọc <span>2</span></button>
+          <button class="filter-chip urgent-chip">🔥 AI Urgent Bump</button>
+        </div>
+
+        <div class="conversation-list">
+          
+      <div class="conversation-row conversation-row-active">
+        <div class="avatar avatar-peach">AM</div>
+        <div class="conversation-row-copy">
+          <div class="conversation-row-top">
+            <strong>Alex Morgan</strong>
+            <time>14:32</time>
+          </div>
+          <div class="conversation-row-preview">Thẻ ngân hàng bị trừ tiền nhưng website báo lỗi 500</div>
+          <div class="conversation-row-bottom">
+            <span class="channel-label channel-web-form"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg> Web Form</span>
+            <span class="conversation-ticket">#TK-1082</span>
+            <span class="badge badge-urgent">🔥 AI Urgent</span>
+            <span class="badge badge-frustrated">Bực bội (88%)</span>
+            <span class="unread-dot"></span>
+          </div>
+        </div>
+      </div>
+    
+      <div class="conversation-row">
+        <div class="avatar avatar-blue">SC</div>
+        <div class="conversation-row-copy">
+          <div class="conversation-row-top">
+            <strong>Sarah Connor</strong>
+            <time>14:15</time>
+          </div>
+          <div class="conversation-row-preview">Hỏi về quy trình gia hạn hợp đồng doanh nghiệp</div>
+          <div class="conversation-row-bottom">
+            <span class="channel-label channel-email"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> Email</span>
+            <span class="conversation-ticket">#TK-1081</span>
+            <span class="badge badge-positive">Tích cực (92%)</span>
+          </div>
+        </div>
+      </div>
+    
+      <div class="conversation-row">
+        <div class="avatar avatar-lilac">DB</div>
+        <div class="conversation-row-copy">
+          <div class="conversation-row-top">
+            <strong>David Beckham</strong>
+            <time>13:30</time>
+          </div>
+          <div class="conversation-row-preview">Cần hỗ trợ tích hợp Webhook Telegram</div>
+          <div class="conversation-row-bottom">
+            <span class="channel-label channel-telegram"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg> Telegram</span>
+            <span class="conversation-ticket">#TK-1080</span>
+            <span class="badge badge-neutral">Trung tính (70%)</span>
+          </div>
+        </div>
+      </div>
+    
+      <div class="conversation-row">
+        <div class="avatar avatar-mint">EW</div>
+        <div class="conversation-row-copy">
+          <div class="conversation-row-top">
+            <strong>Emma Watson</strong>
+            <time>11:20</time>
+          </div>
+          <div class="conversation-row-preview">Xác nhận đã nhận lại mã kích hoạt</div>
+          <div class="conversation-row-bottom">
+            <span class="channel-label" style="color: #059669;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg> Livechat</span>
+            <span class="conversation-ticket">#TK-1079</span>
+            <span class="badge badge-resolved">Đã giải quyết</span>
+          </div>
+        </div>
+      </div>
+    
+        </div>
+
+        <div class="queue-footer">
+          <span class="online-indicator"></span>
+          <span>Đồng bộ trực tiếp</span>
+        </div>
+      </section>
+    
+            
+      <!-- COLUMN 2: CONVERSATION (width: 626px) -->
+      <section class="inbox-conversation">
+        <!-- Tầng 1: Conversation Header (height: 69px) -->
+        <div class="conversation-header">
+          <button class="conversation-back">← Quay lại Hàng đợi</button>
+          <div class="avatar avatar-peach">AM</div>
+          <div class="conversation-contact">
+            <strong>Alex Morgan</strong>
+            <span><i></i>Đang hoạt động</span>
+          </div>
+          <span class="conversation-header-channel"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg> Web Form</span>
+          <span class="badge badge-urgent" style="margin-left: auto;">🔥 Priority Bump: URGENT</span>
+          <div class="conversation-tools">
+            <button class="icon-button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 1 0-16 0"/></svg></button>
+            <button class="icon-button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></button>
+          </div>
+        </div>
+
+        <!-- Tầng 2: Ticket Subject (height: 45px) -->
+        <div class="ticket-subject">
+          <span class="subject-ticket-id">#TK-1082</span>
+          <strong>Thẻ ngân hàng bị trừ tiền nhưng website báo lỗi 500</strong>
+          <span style="margin-left: auto; font-size: 10px; color: #68756e; font-weight: 600;">SLA: Còn 28 phút</span>
+        </div>
+
+        <!-- Message History -->
+        <div class="message-history">
+          <div class="message-date">Hôm nay, 1 tháng 10</div>
+          
+      <div class="message-line message-customer">
+        <div class="avatar avatar-small avatar-peach">AM</div>
+        <div class="message-body">
+          <p>Tôi vừa thực hiện thanh toán gói Pro 49$ qua thẻ Visa... Tài khoản của tôi đã bị trừ tiền từ phía ngân hàng nhưng màn hình thanh toán lại báo lỗi 500! Đề nghị hỗ trợ kiểm tra và xử lý ngay lập tức cho tôi, tôi đang rất gấp để bàn giao dự án chiều nay!</p>
+          <span>14:32</span>
+        </div>
+      </div>
+    
+          
+        </div>
+
+        <!-- Floating AI Draft Card (Base 4) -->
+        
+
+        <!-- Reply Composer -->
+        <div class="reply-composer">
+          <!-- AI Action Bar -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #f0f2f0;">
+            <button class="ai-draft-trigger-btn">
+              <span>✦ Generate AI Draft</span>
+            </button>
+            <span style="font-size: 10px; color: #68756e;">Phản hồi gửi về: Web Portal Form</span>
+          </div>
+
+          <textarea style="color: #1e2d26; font-weight: 500; height: 60px;">Chào bạn Alex, HelpDesk+ đã ghi nhận sự cố giao dịch #TK-1082 của bạn. Chúng tôi rất tiếc vì trải nghiệm gián đoạn này. Đội ngũ kỹ thuật đang phối hợp với cổng thanh toán để tra soát giao dịch 49$ và sẽ hoàn tất kích hoạt gói Pro cho bạn trong vòng 30 phút tới. Bạn không cần thực hiện thêm thao tác thanh toán nào khác.</textarea>
+
+          <div class="composer-actions">
+            <div>
+              <button class="icon-button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
+              <button class="icon-button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg></button>
+              <span class="composer-hint">Enter để gửi · Shift + Enter xuống dòng</span>
+            </div>
+            <button class="send-reply" style="background: #287b59; box-shadow: 0 4px 12px rgba(40, 123, 89, 0.4);">
+              <span>Gửi phản hồi</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+            </button>
+          </div>
+        </div>
+      </section>
+    
+            
+      <!-- COLUMN 3: CUSTOMER DETAILS (width: 275px) -->
+      <section class="customer-details">
+        <div class="details-heading">
+          <h2>Thông tin</h2>
+          <button class="icon-button details-close">✕</button>
+        </div>
+
+        <div class="customer-profile">
+          <div class="avatar avatar-peach">AM</div>
+          <strong>Alex Morgan</strong>
+          <span>Khách hàng từ tháng 3, 2024</span>
+        </div>
+
+        <div class="customer-contact-list">
+          <div>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            <span>
+              <small>Email</small>
+              <strong>alex.morgan@techcorp.io</strong>
+            </span>
+          </div>
+          <div>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+            <span>
+              <small>Điện thoại</small>
+              <strong>+84 901 234 567</strong>
+            </span>
+          </div>
+          <div>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+            <span>
+              <small>Tổ chức</small>
+              <strong>TechCorp IO (Pro Plan)</strong>
+            </span>
+          </div>
+        </div>
+
+        <div class="details-divider"></div>
+
+        <!-- AI Core Analysis -->
+        <div class="ticket-properties" style="background: #fdfefe; border-bottom: 1px solid #edf0ed;">
+          <h3 style="color: #047857;">Phân tích AI Cốt lõi</h3>
+          <div class="property-group">
+            <span>Thái độ cảm xúc</span>
+            <span class="badge badge-frustrated" style="width: fit-content;">Bực bội / Frustrated (88%)</span>
+          </div>
+          <div class="property-group">
+            <span>Mức độ khẩn cấp</span>
+            <span class="badge badge-urgent" style="width: fit-content;">🔥 URGENT (Priority Bump)</span>
+          </div>
+          <div class="property-group">
+            <span>Từ khóa phát hiện</span>
+            <strong style="color: #b91c1c; font-size: 10px;">"ngay lập tức", "lỗi 500"</strong>
+          </div>
+        </div>
+
+        <div class="details-divider"></div>
+
+        <!-- Ticket Properties -->
+        <div class="ticket-properties">
+          <h3>Thuộc tính yêu cầu</h3>
+          <div class="property-group">
+            <span>Trạng thái</span>
+            
+          <div class="status-switch">
+            <button class="status-selected"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16.5 12"/></svg> Chờ xử lý</button>
+            <button><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Đã xong</button>
+          </div>
+        
+          </div>
+          <div class="property-group">
+            <span>Độ ưu tiên</span>
+            <div class="priority-select priority-cao">Cao (Urgent)</div>
+          </div>
+          <div class="property-group">
+            <span>Người phụ trách (Assignee)</span>
+            <div class="assignee-select-wrap">
+              <div class="avatar avatar-small avatar-mint">NP</div>
+              <span style="font-size: 10px; font-weight: 600; color: #344039; flex: 1;">Võ Ngọc Phú (Lead)</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="details-divider"></div>
+
+        <!-- Ticket Context -->
+        <div class="ticket-context">
+          <h3>Ticket hiện tại</h3>
+          <div>
+            <span>Mã yêu cầu</span>
+            <strong>#TK-1082</strong>
+          </div>
+          <div>
+            <span>Kênh tiếp nhận</span>
+            <span class="detail-channel channel-web-form"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg> Web Form</span>
+          </div>
+          <div>
+            <span>Thời gian tạo</span>
+            <strong>Hôm nay, 14:32</strong>
+          </div>
+        </div>
+
+        <button class="customer-history-button">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16.5 12"/></svg>
+          <span>Lịch sử yêu cầu</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+      </section>
+    
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Frame 6: Base 3.1 Updated Timeline -->
+    <div class="figma-frame-wrapper">
+      <div class="frame-label">
+        <span>Frame 6: Base 3.1 Updated Timeline</span>
+        <span class="frame-badge">1440 x 900 px (Biến thể Hoàn tất phản hồi)</span>
+        <span class="frame-desc">Bấm 'Gửi phản hồi', xuất hiện Bubble CSKH xanh đậm #287b59 với 2 tích xanh, trạng thái đổi thành In Progress</span>
+      </div>
+
+      <div class="figma-frame-1440" id="base-3-1-updated-timeline">
+        
+      <!-- SIDEBAR (width: 254px) -->
+      <aside class="sidebar">
+        <!-- Brand -->
+        <div class="brand">
+          <div class="brand-mark">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 11a9 9 0 0 1 18 0"/>
+              <path d="M3 11h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5Z"/>
+              <path d="M21 11v5a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3Z"/>
+              <path d="M21 16v2a4 4 0 0 1-4 4h-5"/>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <span class="brand-title">HelpDesk</span>
+            <span class="brand-sub">SUPPORT PLATFORM</span>
+          </div>
+        </div>
+
+        <!-- Workspace Switcher -->
+        <div class="workspace-switcher">
+          <div class="workspace-mark">H</div>
+          <div class="workspace-copy">
+            <strong>HelpDesk</strong>
+            <small>Gói chuyên nghiệp</small>
+          </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
+
+        <!-- Nav Caption -->
+        <div class="nav-caption">KHÔNG GIAN LÀM VIỆC</div>
+
+        <!-- Nav List (4 items matching App.jsx) -->
+        <nav class="nav-list">
+          <a href="#" class="nav-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+            <span>Báo cáo</span>
+          </a>
+          <a href="#" class="nav-item nav-item-active">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+            <span>Hộp thư</span>
+            <span class="nav-badge">4</span>
+          </a>
+          <a href="#" class="nav-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+            <span>Danh sách yêu cầu</span>
+          </a>
+          <a href="#" class="nav-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span>Cài đặt</span>
+          </a>
+        </nav>
+
+        <!-- Sidebar Bottom -->
+        <div class="sidebar-bottom">
+          <div class="help-card">
+            <div class="help-card-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></div>
+            <div>
+              <strong>Cần hỗ trợ?</strong>
+              <p>Chúng tôi luôn ở đây.</p>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </div>
+
+          <div class="profile-row">
+            <div class="avatar avatar-lilac">HP</div>
+            <div class="profile-copy">
+              <strong>Võ Hồng Phúc</strong>
+              <small>Quản trị viên</small>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+          </div>
+        </div>
+      </aside>
+    
+
+        <div class="main-area">
+          
+      <!-- TOPBAR (height: 67px) -->
+      <header class="topbar">
+        <div class="breadcrumbs">
+          <span>Không gian làm việc</span>
+          <span class="breadcrumb-slash">/</span>
+          <strong>Hộp thư</strong>
+        </div>
+
+        <div class="topbar-actions">
+          <div class="search-box">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="text" placeholder="Tìm kiếm..." readonly />
+            <kbd>Ctrl K</kbd>
+          </div>
+
+          <button class="icon-button notification-button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+            <i></i>
+          </button>
+
+          <div class="topbar-divider"></div>
+
+          <div class="user-menu">
+            <div class="avatar avatar-small avatar-lilac">HP</div>
+            <div class="topbar-user-copy">
+              <strong>Võ Hồng Phúc</strong>
+              <small>Quản trị viên</small>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+        </div>
+      </header>
+    
+          <div class="inbox-layout">
+            
+      <!-- COLUMN 1: QUEUE (width: 285px) -->
+      <section class="inbox-queue">
+        <div class="queue-heading">
+          <div>
+            <h1>Hộp thư đến</h1>
+            <p>2 tin nhắn chưa đọc</p>
+          </div>
+          <button class="icon-button queue-compose"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
+        </div>
+
+        <div class="queue-search">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" placeholder="Tìm tên hoặc nội dung..." readonly />
+        </div>
+
+        <div class="queue-filters">
+          <button class="queue-filter queue-filter-active">Tất cả <span>4</span></button>
+          <button class="queue-filter">Chưa đọc <span>2</span></button>
+          <button class="filter-chip urgent-chip">🔥 AI Urgent Bump</button>
+        </div>
+
+        <div class="conversation-list">
+          
+      <div class="conversation-row conversation-row-active">
+        <div class="avatar avatar-peach">AM</div>
+        <div class="conversation-row-copy">
+          <div class="conversation-row-top">
+            <strong>Alex Morgan</strong>
+            <time>14:32</time>
+          </div>
+          <div class="conversation-row-preview">Thẻ ngân hàng bị trừ tiền nhưng website báo lỗi 500</div>
+          <div class="conversation-row-bottom">
+            <span class="channel-label channel-web-form"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg> Web Form</span>
+            <span class="conversation-ticket">#TK-1082</span>
+            <span class="badge badge-urgent">🔥 AI Urgent</span>
+            <span class="badge badge-frustrated">Bực bội (88%)</span>
+            <span class="unread-dot"></span>
+          </div>
+        </div>
+      </div>
+    
+      <div class="conversation-row">
+        <div class="avatar avatar-blue">SC</div>
+        <div class="conversation-row-copy">
+          <div class="conversation-row-top">
+            <strong>Sarah Connor</strong>
+            <time>14:15</time>
+          </div>
+          <div class="conversation-row-preview">Hỏi về quy trình gia hạn hợp đồng doanh nghiệp</div>
+          <div class="conversation-row-bottom">
+            <span class="channel-label channel-email"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> Email</span>
+            <span class="conversation-ticket">#TK-1081</span>
+            <span class="badge badge-positive">Tích cực (92%)</span>
+          </div>
+        </div>
+      </div>
+    
+      <div class="conversation-row">
+        <div class="avatar avatar-lilac">DB</div>
+        <div class="conversation-row-copy">
+          <div class="conversation-row-top">
+            <strong>David Beckham</strong>
+            <time>13:30</time>
+          </div>
+          <div class="conversation-row-preview">Cần hỗ trợ tích hợp Webhook Telegram</div>
+          <div class="conversation-row-bottom">
+            <span class="channel-label channel-telegram"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg> Telegram</span>
+            <span class="conversation-ticket">#TK-1080</span>
+            <span class="badge badge-neutral">Trung tính (70%)</span>
+          </div>
+        </div>
+      </div>
+    
+      <div class="conversation-row">
+        <div class="avatar avatar-mint">EW</div>
+        <div class="conversation-row-copy">
+          <div class="conversation-row-top">
+            <strong>Emma Watson</strong>
+            <time>11:20</time>
+          </div>
+          <div class="conversation-row-preview">Xác nhận đã nhận lại mã kích hoạt</div>
+          <div class="conversation-row-bottom">
+            <span class="channel-label" style="color: #059669;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg> Livechat</span>
+            <span class="conversation-ticket">#TK-1079</span>
+            <span class="badge badge-resolved">Đã giải quyết</span>
+          </div>
+        </div>
+      </div>
+    
+        </div>
+
+        <div class="queue-footer">
+          <span class="online-indicator"></span>
+          <span>Đồng bộ trực tiếp</span>
+        </div>
+      </section>
+    
+            
+      <!-- COLUMN 2: CONVERSATION (width: 626px) -->
+      <section class="inbox-conversation">
+        <!-- Tầng 1: Conversation Header (height: 69px) -->
+        <div class="conversation-header">
+          <button class="conversation-back">← Quay lại Hàng đợi</button>
+          <div class="avatar avatar-peach">AM</div>
+          <div class="conversation-contact">
+            <strong>Alex Morgan</strong>
+            <span><i></i>Đang hoạt động</span>
+          </div>
+          <span class="conversation-header-channel"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg> Web Form</span>
+          <span class="badge badge-progress" style="margin-left: auto;">● Đang xử lý (In Progress)</span>
+          <div class="conversation-tools">
+            <button class="icon-button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 1 0-16 0"/></svg></button>
+            <button class="icon-button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></button>
+          </div>
+        </div>
+
+        <!-- Tầng 2: Ticket Subject (height: 45px) -->
+        <div class="ticket-subject">
+          <span class="subject-ticket-id">#TK-1082</span>
+          <strong>Thẻ ngân hàng bị trừ tiền nhưng website báo lỗi 500</strong>
+          <span style="margin-left: auto; font-size: 10px; color: #68756e; font-weight: 600;">SLA: Còn 28 phút</span>
+        </div>
+
+        <!-- Message History -->
+        <div class="message-history">
+          <div class="message-date">Hôm nay, 1 tháng 10</div>
+          
+      <div class="message-line message-customer">
+        <div class="avatar avatar-small avatar-peach">AM</div>
+        <div class="message-body">
+          <p>Tôi vừa thực hiện thanh toán gói Pro 49$ qua thẻ Visa... Tài khoản của tôi đã bị trừ tiền từ phía ngân hàng nhưng màn hình thanh toán lại báo lỗi 500! Đề nghị hỗ trợ kiểm tra và xử lý ngay lập tức cho tôi, tôi đang rất gấp để bàn giao dự án chiều nay!</p>
+          <span>14:32</span>
+        </div>
+      </div>
+    
+          
+      <div class="message-line message-agent">
+        <div class="message-body">
+          <p>Chào bạn Alex, HelpDesk+ đã ghi nhận sự cố giao dịch #TK-1082 của bạn. Chúng tôi rất tiếc vì trải nghiệm gián đoạn này. Đội ngũ kỹ thuật đang phối hợp với cổng thanh toán để tra soát giao dịch 49$ và sẽ hoàn tất kích hoạt gói Pro cho bạn trong vòng 30 phút tới. Bạn không cần thực hiện thêm thao tác thanh toán nào khác.</p>
+          <span>14:34 · Võ Ngọc Phú <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg></span>
+        </div>
+        <div class="avatar avatar-small avatar-mint">NP</div>
+      </div>
+    
+        </div>
+
+        <!-- Floating AI Draft Card (Base 4) -->
+        
+
+        <!-- Reply Composer -->
+        <div class="reply-composer">
+          <!-- AI Action Bar -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #f0f2f0;">
+            <button class="ai-draft-trigger-btn">
+              <span>✦ Generate AI Draft</span>
+            </button>
+            <span style="font-size: 10px; color: #68756e;">Phản hồi gửi về: Web Portal Form</span>
+          </div>
+
+          <textarea placeholder="Nhập thêm trao đổi cho Alex Morgan..."></textarea>
+
+          <div class="composer-actions">
+            <div>
+              <button class="icon-button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
+              <button class="icon-button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg></button>
+              <span class="composer-hint">Enter để gửi · Shift + Enter xuống dòng</span>
+            </div>
+            <button class="send-reply" style="">
+              <span>Gửi phản hồi</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+            </button>
+          </div>
+        </div>
+      </section>
+    
+            
+      <!-- COLUMN 3: CUSTOMER DETAILS (width: 275px) -->
+      <section class="customer-details">
+        <div class="details-heading">
+          <h2>Thông tin</h2>
+          <button class="icon-button details-close">✕</button>
+        </div>
+
+        <div class="customer-profile">
+          <div class="avatar avatar-peach">AM</div>
+          <strong>Alex Morgan</strong>
+          <span>Khách hàng từ tháng 3, 2024</span>
+        </div>
+
+        <div class="customer-contact-list">
+          <div>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            <span>
+              <small>Email</small>
+              <strong>alex.morgan@techcorp.io</strong>
+            </span>
+          </div>
+          <div>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+            <span>
+              <small>Điện thoại</small>
+              <strong>+84 901 234 567</strong>
+            </span>
+          </div>
+          <div>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+            <span>
+              <small>Tổ chức</small>
+              <strong>TechCorp IO (Pro Plan)</strong>
+            </span>
+          </div>
+        </div>
+
+        <div class="details-divider"></div>
+
+        <!-- AI Core Analysis -->
+        <div class="ticket-properties" style="background: #fdfefe; border-bottom: 1px solid #edf0ed;">
+          <h3 style="color: #047857;">Phân tích AI Cốt lõi</h3>
+          <div class="property-group">
+            <span>Thái độ cảm xúc</span>
+            <span class="badge badge-frustrated" style="width: fit-content;">Bực bội / Frustrated (88%)</span>
+          </div>
+          <div class="property-group">
+            <span>Mức độ khẩn cấp</span>
+            <span class="badge badge-urgent" style="width: fit-content;">🔥 URGENT (Priority Bump)</span>
+          </div>
+          <div class="property-group">
+            <span>Từ khóa phát hiện</span>
+            <strong style="color: #b91c1c; font-size: 10px;">"ngay lập tức", "lỗi 500"</strong>
+          </div>
+        </div>
+
+        <div class="details-divider"></div>
+
+        <!-- Ticket Properties -->
+        <div class="ticket-properties">
+          <h3>Thuộc tính yêu cầu</h3>
+          <div class="property-group">
+            <span>Trạng thái</span>
+            
+          <div class="status-switch">
+            <button class="status-selected status-done"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16.5 12"/></svg> Đang xử lý</button>
+            <button><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Đã xong</button>
+          </div>
+        
+          </div>
+          <div class="property-group">
+            <span>Độ ưu tiên</span>
+            <div class="priority-select priority-cao">Cao (Urgent)</div>
+          </div>
+          <div class="property-group">
+            <span>Người phụ trách (Assignee)</span>
+            <div class="assignee-select-wrap">
+              <div class="avatar avatar-small avatar-mint">NP</div>
+              <span style="font-size: 10px; font-weight: 600; color: #344039; flex: 1;">Võ Ngọc Phú (Lead)</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="details-divider"></div>
+
+        <!-- Ticket Context -->
+        <div class="ticket-context">
+          <h3>Ticket hiện tại</h3>
+          <div>
+            <span>Mã yêu cầu</span>
+            <strong>#TK-1082</strong>
+          </div>
+          <div>
+            <span>Kênh tiếp nhận</span>
+            <span class="detail-channel channel-web-form"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg> Web Form</span>
+          </div>
+          <div>
+            <span>Thời gian tạo</span>
+            <strong>Hôm nay, 14:32</strong>
+          </div>
+        </div>
+
+        <button class="customer-history-button">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16.5 12"/></svg>
+          <span>Lịch sử yêu cầu</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+      </section>
+    
+          </div>
+        </div>
+      </div>
+    </div>
+    
+
+  <!-- FRAME 7: COMPONENT SYSTEM -->
+  
+    <!-- Frame 7: Component System -->
+    <div class="figma-frame-wrapper">
+      <div class="frame-label">
+        <span>Frame 7: ❖ Component System & Master Variants</span>
+        <span class="frame-badge">Design System Page</span>
+        <span class="frame-desc">Bảng kiểm kê Master Components chuẩn hóa theo Frontend mẫu và Task 1.8b</span>
+      </div>
+
+      <div class="component-system-board" id="component-system-board">
+        <!-- Group 1: Buttons -->
+        <div class="comp-group">
+          <div class="comp-group-title">1. Nút bấm (Buttons)</div>
+          <div class="comp-item-row">
+            <button class="send-reply">Primary Default (#287b59)</button>
+            <button class="send-reply" style="background: #1e6849;">Primary Hover</button>
+          </div>
+          <div class="comp-item-row">
+            <button class="btn-regenerate">Secondary Outline</button>
+            <button class="ai-draft-trigger-btn">✦ AI Action Gradient</button>
+          </div>
+          <div class="comp-item-row">
+            <div class="status-switch" style="width: 180px;">
+              <button class="status-selected"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16.5 12"/></svg> Chờ xử lý</button>
+              <button><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Đã xong</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Group 2: Badges -->
+        <div class="comp-group">
+          <div class="comp-group-title">2. Badge Nguồn Kênh (Channel Badges)</div>
+          <div class="comp-item-row">
+            <span class="channel-label channel-web-form"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg> Web Form</span>
+            <span class="channel-label channel-email"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> Email</span>
+            <span class="channel-label channel-telegram"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg> Telegram</span>
+            <span class="channel-label" style="color: #059669;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg> Livechat</span>
+          </div>
+          <div class="comp-group-title" style="margin-top: 10px;">Badge Trạng thái Ticket</div>
+          <div class="comp-item-row">
+            <span class="badge badge-open">● Đang mở (Open)</span>
+            <span class="badge badge-progress">● Đang xử lý</span>
+            <span class="badge badge-resolved">● Đã giải quyết</span>
+          </div>
+        </div>
+
+        <!-- Group 3: AI Badges & Team Avatars -->
+        <div class="comp-group">
+          <div class="comp-group-title">3. Badge Cảm xúc & Khẩn cấp AI</div>
+          <div class="comp-item-row">
+            <span class="badge badge-urgent">🔥 AI Urgent Bump</span>
+            <span class="badge badge-frustrated">Bực bội (88%)</span>
+            <span class="badge badge-positive">Tích cực (92%)</span>
+            <span class="badge badge-neutral">Trung tính (70%)</span>
+          </div>
+          <div class="comp-group-title" style="margin-top: 10px;">Avatar 4 Thành viên Đồ án (Chuẩn)</div>
+          <div class="comp-item-row">
+            <div class="avatar avatar-lilac" title="Võ Hồng Phúc (Frontend Lead)">HP</div>
+            <div class="avatar avatar-peach" title="Võ Thị Thu Lộc (Backend & Channels)">TL</div>
+            <div class="avatar avatar-mint" title="Võ Ngọc Phú (Lead & AI)">NP</div>
+            <div class="avatar avatar-blue" title="Trương Đình Thảo Đoan (QA)">TĐ</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+
+</body>
+</html>
