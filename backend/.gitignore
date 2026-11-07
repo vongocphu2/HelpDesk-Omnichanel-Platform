@@ -10,3 +10,8 @@ dist/
 
 # Email synchronization state
 data/email-sync-state.json
+
+# Local evidence from live Gemini smoke tests
+artifacts/ai-triage/
+
+uploads/

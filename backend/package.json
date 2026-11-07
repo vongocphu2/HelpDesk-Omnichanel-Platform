@@ -8,6 +8,12 @@
   "type": "module",
   "scripts": {
     "build": "nest build",
+    "db:clean": "node scripts/clean-db.mjs",
+    "migration:show": "node node_modules/typeorm/cli.js migration:show -d dist/database/data-source.js",
+    "migration:run": "node node_modules/typeorm/cli.js migration:run -d dist/database/data-source.js",
+    "ai:smoke": "node scripts/test-ai-triage.mjs",
+    "ai:retry": "node scripts/retry-ai-triage.mjs",
+    "ai:check": "node scripts/check-ai-provider.mjs",
     "deploy": "nest deploy",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",

@@ -9,6 +9,7 @@ import { WebformModule } from './modules/webform/webform.module.js';
 import { EmailProcessedMessage } from './modules/email/email-processed.entity.js';
 import { TelegramModule } from './modules/telegram/telegram.module.js';
 import { TelegramProcessedUpdate } from './modules/telegram/telegram-processed-update.entity.js';
+import { AiModule } from './modules/ai/ai.module.js';
 import {
   Role,
   User,
@@ -64,6 +65,7 @@ import { HealthModule } from './modules/health/health.module.js';
     TicketsModule,
     WebformModule,
     TelegramModule,
+    AiModule,
   ],
 })
 export class AppModule { }

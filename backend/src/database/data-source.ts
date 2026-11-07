@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { DataSource } from 'typeorm';
 
 import { AddTelegramIdentity1793462400000 } from './migrations/1793462400000-AddTelegramIdentity.js';
+import { AddTicketTriage1793836800000 } from './migrations/1793836800000-AddTicketTriage.js';
 
 await ConfigModule.forRoot({
     envFilePath: ['.env', '../.env'],
@@ -33,5 +34,5 @@ export default new DataSource({
     migrationsTableName: 'typeorm_migrations',
     migrationsTransactionMode: 'all',
 
-    migrations: [AddTelegramIdentity1793462400000],
+    migrations: [AddTelegramIdentity1793462400000, AddTicketTriage1793836800000],
 });

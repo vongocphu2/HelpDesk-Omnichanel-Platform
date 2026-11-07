@@ -314,7 +314,8 @@ export class TicketsService {
         'ticket.assigned_agent',
         'assigned_agent',
       )
-      .leftJoinAndSelect('ticket.channel', 'channel');
+      .leftJoinAndSelect('ticket.channel', 'channel')
+      .leftJoinAndSelect('ticket.messages', 'messages');
 
     if (query.status) {
       qb.andWhere('ticket.status = :status', {
@@ -366,6 +367,7 @@ export class TicketsService {
 
     qb.orderBy('ticket.is_urgent_bumped', 'DESC')
       .addOrderBy('ticket.created_at', 'DESC')
+      .addOrderBy('ticket.ticket_id', 'ASC')
       .skip(skip)
       .take(limit);
 
