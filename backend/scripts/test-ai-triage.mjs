@@ -26,7 +26,12 @@ const report = {
 async function request(path, body) {
   const response = await fetch(`${base}${path}`, {
     method: body ? 'POST' : 'GET',
-    headers: body ? { 'Content-Type': 'application/json' } : {},
+    headers: {
+      ...(body ? { 'Content-Type': 'application/json' } : {}),
+      ...(process.env.HELPDESK_ACCESS_TOKEN
+        ? { Authorization: `Bearer ${process.env.HELPDESK_ACCESS_TOKEN}` }
+        : {}),
+    },
     body: body ? JSON.stringify(body) : undefined,
     signal: AbortSignal.timeout(15000),
   });
@@ -47,7 +52,7 @@ try {
       previous.results.length !== cases.length ||
       new Set(previous.results.map((r) => r.id)).size !== cases.length ||
       new Set(previous.results.map((r) => r.ticket_code)).size !==
-        cases.length ||
+      cases.length ||
       previous.results.some(
         (r) =>
           !cases.some((c) => c.id === r.id) ||

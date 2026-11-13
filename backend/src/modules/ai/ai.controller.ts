@@ -1,16 +1,23 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TriageProviderService } from './triage-provider.service.js';
 import { SENTIMENT_LABELS } from './triage-result.js';
+import { ApiBearerAuth } from '@nestjs/swagger';
+import { AuthGuard } from '../auth/auth.guard.js';
+import { RolesGuard } from '../auth/roles.guard.js';
+import { Roles } from '../auth/roles.decorator.js';
 
 @Controller('ai/triage')
 export class AiController {
   constructor(
     private readonly provider: TriageProviderService,
     private readonly config: ConfigService,
-  ) {}
+  ) { }
 
   @Get('status')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiBearerAuth()
   status() {
     // Deliberately expose no API key, credentials or customer content.
     return {

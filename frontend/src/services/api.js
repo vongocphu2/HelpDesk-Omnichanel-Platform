@@ -12,7 +12,7 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    if (token) {
+    if (token && config.url !== '/auth/login') {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -20,12 +20,29 @@ api.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
-// Interceptor xử lý lỗi tập trung
+// Chỉ bóc response một lần và xử lý token bị từ chối.
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    const message = error.response?.data?.message || error.message || 'Lỗi kết nối máy chủ';
-    console.error('API Error:', message);
+    const currentToken = localStorage.getItem('token');
+    const sentAuthorization = error.config?.headers?.Authorization;
+
+    if (
+      error.response?.status === 401 &&
+      error.config?.url !== '/auth/login' &&
+      currentToken &&
+      sentAuthorization === `Bearer ${currentToken}`
+    ) {
+      localStorage.removeItem('token');
+
+      const path = window.location.pathname.replace(/\/+$/, '') || '/';
+      const publicPaths = ['/login', '/register', '/portal', '/customer-portal'];
+
+      if (!publicPaths.includes(path)) {
+        window.location.assign('/login');
+      }
+    }
+
     return Promise.reject(error);
   },
 );

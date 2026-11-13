@@ -7,11 +7,21 @@ import {
     Query,
     HttpStatus,
     HttpCode,
+    Patch,
+    ValidationPipe,
+    UseGuards,
+    Req,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { TicketsService } from './tickets.service.js';
 import { CreateTicketDto } from './dto/create-ticket.dto.js';
 import { QueryTicketDto } from './dto/query-ticket.dto.js';
+
+import { UpdateTicketDto } from './dto/update-ticket.dto.js';
+import { AuthGuard } from '../auth/auth.guard.js';
+import type { AuthenticatedRequest } from '../auth/auth.guard.js';
+import { RolesGuard } from '../auth/roles.guard.js';
+import { Roles } from '../auth/roles.decorator.js';
 
 @ApiTags('Tickets (Quản lý Yêu cầu Hỗ trợ)')
 @Controller('tickets')
@@ -43,6 +53,9 @@ export class TicketsController {
     }
 
     @Get()
+    @ApiBearerAuth()
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles('admin', 'manager', 'agent')
     @ApiOperation({
         summary: 'Xem danh sách vé hỗ trợ có bộ lọc và phân trang (Task 2.2 - Phú)',
         description:
@@ -61,7 +74,69 @@ export class TicketsController {
         };
     }
 
+    @Patch(':id')
+    @ApiBearerAuth()
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles('admin', 'manager', 'agent')
+    @ApiOperation({
+        summary: 'Cập nhật trạng thái và mức độ ưu tiên ticket (Task 4.1 - Phú)',
+    })
+    @ApiParam({
+        name: 'id',
+        description: 'UUID hoặc mã ticket',
+        example: 'TK-1001',
+    })
+    @ApiResponse({
+        status: HttpStatus.OK,
+        description: 'Cập nhật ticket thành công.',
+    })
+    @ApiResponse({
+        status: HttpStatus.BAD_REQUEST,
+        description: 'Dữ liệu cập nhật không hợp lệ.',
+    })
+    @ApiResponse({
+        status: HttpStatus.NOT_FOUND,
+        description: 'Không tìm thấy ticket.',
+    })
+    async update(
+        @Param('id') id: string,
+        @Body(new ValidationPipe({
+            whitelist: true,
+            transform: true,
+        }))
+        dto: UpdateTicketDto,
+        @Req() request: AuthenticatedRequest,
+    ) {
+        const ticket = await this.ticketsService.update(
+            id,
+            dto,
+            request.user.user_id,
+        );
+        return {
+            statusCode: HttpStatus.OK,
+            message: 'Cập nhật ticket thành công',
+            data: {
+                ticket_id: ticket.ticket_id,
+                ticket_code: ticket.ticket_code,
+                status: ticket.status,
+                priority: ticket.priority,
+                is_urgent_bumped: ticket.is_urgent_bumped,
+                closed_at: ticket.closed_at,
+                status_history: ticket.status_history.map((history) => ({
+                    history_id: history.history_id,
+                    old_status: history.old_status,
+                    new_status: history.new_status,
+                    changed_by: history.changed_by,
+                    changed_at: history.changed_at,
+                })),
+            },
+        };
+    }
+
     @Get(':id')
+    @ApiBearerAuth()
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles('admin', 'manager', 'agent')
     @ApiOperation({
         summary: 'Xem chi tiết 1 vé hỗ trợ và lịch sử trao đổi (Task 2.2 - Phú)',
         description:

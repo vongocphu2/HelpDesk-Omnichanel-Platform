@@ -26,8 +26,13 @@ export class User {
     @Column({ type: 'varchar', length: 20, nullable: true })
     phone: string | null;
 
-    @Column({ type: 'varchar', length: 255, nullable: true })
-    password_hash: string | null; // Nullable cho khách vãng lai qua Telegram/Email
+    @Column({
+        type: 'varchar',
+        length: 255,
+        nullable: true,
+        select: false,
+    })
+    password_hash: string | null;
 
     @Column({ type: 'uuid' })
     role_id: string;

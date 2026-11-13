@@ -1,9 +1,10 @@
 import { getTicketTriage, getTicketStatus } from "./services/ticket-triage.js";
 import { ticketService, watchTickets } from "./services/ticket.service.js";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import SettingsPage from "./SettingsPage.jsx";
 import CustomerPortal from "./pages/CustomerPortal.jsx";
+import api from "./services/api.js";
 import {
   Activity,
   ArrowDownRight,
@@ -2936,33 +2937,67 @@ function AuthPage({ mode, onLogin }) {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState(location.state?.notice ?? "");
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const password = String(formData.get("password") ?? "");
+
+    if (submitting) return;
+
+    setError("");
+    setNotice("");
 
     if (isRegister) {
-      if (password !== formData.get("confirmPassword")) {
-        setError("Mật khẩu xác nhận chưa khớp.");
-        return;
-      }
-      navigate("/login", {
-        replace: true,
-        state: {
-          email,
-          notice: "Tạo tài khoản thành công. Bạn có thể đăng nhập để tiếp tục.",
-        },
-      });
+      setError("Vui lòng liên hệ quản trị viên để được cấp tài khoản nhân viên.");
       return;
     }
 
-    if (rememberMe) {
-      localStorage.setItem("helpdesk-remembered-email", email);
-    } else {
-      localStorage.removeItem("helpdesk-remembered-email");
+    const formData = new FormData(event.currentTarget);
+    const password = String(formData.get("password") ?? "");
+
+    setSubmitting(true);
+
+    try {
+      const response = await api.post("/auth/login", {
+        email: email.trim(),
+        password,
+      });
+
+      const session = response.data;
+
+      if (!session?.access_token || !session?.user?.user_id) {
+        throw new Error("Phản hồi đăng nhập không hợp lệ.");
+      }
+
+      localStorage.setItem("token", session.access_token);
+
+      if (rememberMe) {
+        localStorage.setItem("helpdesk-remembered-email", email.trim());
+      } else {
+        localStorage.removeItem("helpdesk-remembered-email");
+      }
+
+      onLogin(session.user);
+    } catch (error) {
+      const status = error.response?.status;
+      const message = error.response?.data?.message;
+
+      if (status === 429) {
+        setError("Bạn đăng nhập quá nhiều lần. Vui lòng đợi khoảng một phút.");
+      } else if (status === 401) {
+        setError("Email hoặc mật khẩu không đúng, hoặc tài khoản không được phép đăng nhập.");
+      } else if (!error.response) {
+        setError("Không kết nối được máy chủ hoặc phản hồi không hợp lệ. Vui lòng thử lại.");
+      } else {
+        setError(
+          Array.isArray(message)
+            ? message.join(". ")
+            : message || "Đăng nhập thất bại. Vui lòng thử lại.",
+        );
+      }
+    } finally {
+      setSubmitting(false);
     }
-    onLogin();
   };
 
   return (
@@ -3136,12 +3171,20 @@ function AuthPage({ mode, onLogin }) {
                   checked={rememberMe}
                   onChange={(event) => setRememberMe(event.target.checked)}
                 />
-                <span>Ghi nhớ đăng nhập</span>
+                <span>Ghi nhớ email</span>
               </label>
             )}
 
-            <button className="auth-submit" type="submit">
-              {isRegister ? "Tạo tài khoản" : "Đăng nhập"}
+            <button
+              className="auth-submit"
+              type="submit"
+              disabled={submitting}
+            >
+              {submitting
+                ? "Đang đăng nhập..."
+                : isRegister
+                  ? "Tạo tài khoản"
+                  : "Đăng nhập"}
               <ArrowRight size={17} />
             </button>
           </form>
@@ -3159,6 +3202,9 @@ function AuthPage({ mode, onLogin }) {
 }
 
 function App() {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authChecking, setAuthChecking] = useState(true);
+  const [authCheckError, setAuthCheckError] = useState("");
   const location = useLocation();
   const routeNavigate = useNavigate();
   const [active, setActive] = useState("Dashboard");
@@ -3181,6 +3227,56 @@ function App() {
   const pathname = location.pathname.replace(/\/+$/, "") || "/";
 
   useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+
+    const verifySession = async () => {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        setAuthChecking(false);
+        return;
+      }
+
+      try {
+        const response = await api.get("/auth/me", {
+          signal: controller.signal,
+        });
+
+        if (cancelled) return;
+
+        if (!response.data?.user_id) {
+          throw new Error("INVALID_SESSION_RESPONSE");
+        }
+
+        setCurrentUser(response.data);
+      } catch (error) {
+        if (cancelled) return;
+
+        setCurrentUser(null);
+
+        if (error.response?.status !== 401) {
+          setAuthCheckError(
+            "Chưa kiểm tra được phiên đăng nhập. Hãy kiểm tra kết nối máy chủ rồi thử lại.",
+          );
+        }
+      } finally {
+        if (!cancelled) setAuthChecking(false);
+      }
+    };
+
+    void verifySession();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, []);
+
+  useEffect(() => {
+    const publicPaths = ["/login", "/register", "/portal", "/customer-portal"];
+
+    if (!currentUser || publicPaths.includes(pathname)) return;
     let isMounted = true;
     const fetchStats = () => {
       if (typeof ticketService !== "undefined" && ticketService.getTickets) {
@@ -3203,7 +3299,7 @@ function App() {
               setDashboardStats({ total, resolved, pending });
             }
           })
-          .catch(() => {});
+          .catch(() => { });
       }
     };
 
@@ -3213,7 +3309,7 @@ function App() {
       isMounted = false;
       clearInterval(timer);
     };
-  }, [active]);
+  }, [active, currentUser, pathname]);
 
   const dynamicMetrics = [
     {
@@ -3287,7 +3383,10 @@ function App() {
       <AuthPage
         key="login"
         mode="login"
-        onLogin={() => {
+        onLogin={(user) => {
+          setCurrentUser(user);
+          setAuthChecking(false);
+          setAuthCheckError("");
           setActive("Dashboard");
           routeNavigate("/", { replace: true });
         }}
@@ -3296,7 +3395,15 @@ function App() {
   }
 
   if (pathname === "/register") {
-    return <AuthPage key="register" mode="register" onLogin={() => {}} />;
+    return (
+      <main className="auth-main">
+        <section className="auth-form-wrap">
+          <h1>Tài khoản nhân viên</h1>
+          <p>Vui lòng liên hệ quản trị viên để được cấp tài khoản.</p>
+          <Link to="/login">Quay lại đăng nhập</Link>
+        </section>
+      </main>
+    );
   }
 
   if (pathname === "/customer-portal" || pathname === "/portal") {
@@ -3305,6 +3412,25 @@ function App() {
         onSubmitTicket={(payload) => ticketService.createTicket(payload)}
       />
     );
+  }
+
+  if (authChecking) {
+    return <main role="status">Đang kiểm tra phiên đăng nhập...</main>;
+  }
+
+  if (authCheckError) {
+    return (
+      <main>
+        <p role="alert">{authCheckError}</p>
+        <button type="button" onClick={() => window.location.reload()}>
+          Thử lại
+        </button>
+      </main>
+    );
+  }
+
+  if (!currentUser) {
+    return <Navigate to="/login" replace />;
   }
 
   const navigate = (section, options = {}) => {
@@ -3321,10 +3447,14 @@ function App() {
     }
   };
   const handleLogout = () => {
+    localStorage.removeItem("token");
+    setCurrentUser(null);
+    setAuthCheckError("");
     setGlobalSearchOpen(false);
     setActive("Dashboard");
     setSidebarOpen(false);
-    routeNavigate("/login");
+    setDashboardStats({ total: 0, resolved: 0, pending: 0 });
+    routeNavigate("/login", { replace: true });
   };
   const selectGlobalSearchResult = (result) => {
     navigate(result.destination, { search: result.search });
