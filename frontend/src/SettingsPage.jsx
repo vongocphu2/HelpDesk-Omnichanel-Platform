@@ -54,11 +54,20 @@ const settingsTabs = [
 
 const initialMembers = [
   {
+    id: "np",
+    name: "Võ Ngọc Phú",
+    email: "vongocphu136@gmail.com",
+    initials: "NP",
+    role: "Quản trị viên",
+    status: "Đang hoạt động",
+    color: "mint",
+  },
+  {
     id: "hp",
     name: "Võ Hồng Phúc",
     email: "hongphuc@helpdesk.com",
     initials: "HP",
-    role: "Quản trị viên",
+    role: "Nhân viên CSKH",
     status: "Đang hoạt động",
     color: "lilac",
   },
@@ -79,15 +88,6 @@ const initialMembers = [
     role: "Nhân viên CSKH",
     status: "Đang hoạt động",
     color: "blue",
-  },
-  {
-    id: "np",
-    name: "Võ Ngọc Phú",
-    email: "vongocphu136@gmail.com",
-    initials: "NP",
-    role: "Nhân viên CSKH",
-    status: "Đang hoạt động",
-    color: "mint",
   },
 ];
 
@@ -169,8 +169,8 @@ function SettingsPage({ defaultTab = "profile", focusPassword = false }) {
   const [activeTab, setActiveTab] = useState(defaultTab);
   const currentPasswordRef = useRef(null);
   const [profile, setProfile] = useState({
-    name: "Võ Hồng Phúc",
-    email: "hongphuc@helpdesk.com",
+    name: "Võ Ngọc Phú",
+    email: "vongocphu136@gmail.com",
     role: "Quản trị viên",
   });
   const [avatar, setAvatar] = useState("");
@@ -299,7 +299,6 @@ function SettingsPage({ defaultTab = "profile", focusPassword = false }) {
         <div>
           <span className="settings-eyebrow">KHÔNG GIAN LÀM VIỆC</span>
           <h1>Cài đặt</h1>
-          <p>Quản lý tài khoản, nhóm hỗ trợ và cách HelpDesk vận hành.</p>
         </div>
         <span className="settings-workspace-badge">
           <Building2 size={14} /> HelpDesk
@@ -312,7 +311,7 @@ function SettingsPage({ defaultTab = "profile", focusPassword = false }) {
           role="tablist"
           aria-label="Danh mục cài đặt"
         >
-          {settingsTabs.map(({ id, label, description, icon: Icon }) => (
+          {settingsTabs.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               type="button"
@@ -333,7 +332,6 @@ function SettingsPage({ defaultTab = "profile", focusPassword = false }) {
               </span>
               <span className="settings-tab-copy">
                 <strong>{label}</strong>
-                <small>{description}</small>
               </span>
               <ChevronRight className="settings-tab-arrow" size={15} />
             </button>
@@ -348,7 +346,6 @@ function SettingsPage({ defaultTab = "profile", focusPassword = false }) {
           <header className="settings-section-heading">
             <div>
               <h2>{activeTabDetails?.label}</h2>
-              <p>{activeTabDetails?.description}</p>
             </div>
             {savedMessage && (
               <span
@@ -374,7 +371,6 @@ function SettingsPage({ defaultTab = "profile", focusPassword = false }) {
                 <div className="settings-card-heading">
                   <div>
                     <h3>Thông tin cá nhân</h3>
-                    <p>Thông tin hiển thị với nhóm của bạn.</p>
                   </div>
                 </div>
                 <div className="settings-profile-main">
@@ -382,6 +378,8 @@ function SettingsPage({ defaultTab = "profile", focusPassword = false }) {
                     <span className="settings-avatar-preview">
                       {avatar ? (
                         <img src={avatar} alt="Avatar hồ sơ" />
+                      ) : profile.name === "Võ Ngọc Phú" ? (
+                        "NP"
                       ) : profile.name === "Võ Hồng Phúc" ? (
                         "HP"
                       ) : (
@@ -396,7 +394,6 @@ function SettingsPage({ defaultTab = "profile", focusPassword = false }) {
                         onChange={updateAvatar}
                       />
                     </label>
-                    <small>PNG hoặc JPG</small>
                   </div>
                   <div className="settings-profile-fields">
                     <label className="settings-field">
@@ -425,7 +422,6 @@ function SettingsPage({ defaultTab = "profile", focusPassword = false }) {
                       <span className="settings-role-field">
                         <ShieldCheck size={15} />
                         <input value={profile.role} readOnly />
-                        <span>Quyền quản trị</span>
                       </span>
                     </label>
                   </div>
@@ -435,7 +431,6 @@ function SettingsPage({ defaultTab = "profile", focusPassword = false }) {
                 <div className="settings-card-heading settings-password-heading">
                   <div>
                     <h3>Mật khẩu</h3>
-                    <p>Để trống nếu bạn chưa muốn đổi mật khẩu.</p>
                   </div>
                   <KeyRound size={17} />
                 </div>
@@ -487,9 +482,7 @@ function SettingsPage({ defaultTab = "profile", focusPassword = false }) {
                   </label>
                 </div>
                 <footer className="settings-card-footer">
-                  <span>
-                    Thay đổi sẽ áp dụng cho phiên đăng nhập tiếp theo.
-                  </span>
+                  <span />
                   <button className="settings-save-button" type="submit">
                     <Check size={15} /> Lưu thay đổi
                   </button>
@@ -503,7 +496,6 @@ function SettingsPage({ defaultTab = "profile", focusPassword = false }) {
               <div className="settings-card-heading settings-team-heading">
                 <div>
                   <h3>Thành viên workspace</h3>
-                  <p>{members.length} thành viên có quyền truy cập HelpDesk.</p>
                 </div>
                 <button
                   className="settings-primary-button"
@@ -596,7 +588,6 @@ function SettingsPage({ defaultTab = "profile", focusPassword = false }) {
                 <div className="settings-card-heading">
                   <div>
                     <h3>Kênh tiếp nhận</h3>
-                    <p>Bật hoặc tắt các kênh khách hàng có thể gửi yêu cầu.</p>
                   </div>
                 </div>
                 <div className="settings-option-list">
@@ -611,7 +602,6 @@ function SettingsPage({ defaultTab = "profile", focusPassword = false }) {
                         </span>
                         <span className="settings-option-copy">
                           <strong>{channel.name}</strong>
-                          <small>{channel.detail}</small>
                         </span>
                         <span
                           className={
@@ -650,7 +640,6 @@ function SettingsPage({ defaultTab = "profile", focusPassword = false }) {
               <div className="settings-card-heading">
                 <div>
                   <h3>Tùy chọn thông báo</h3>
-                  <p>Chọn các sự kiện sẽ gửi thông báo cho bạn.</p>
                 </div>
               </div>
               <div className="settings-option-list">
@@ -664,7 +653,6 @@ function SettingsPage({ defaultTab = "profile", focusPassword = false }) {
                     </span>
                     <span className="settings-option-copy">
                       <strong>{notification.title}</strong>
-                      <small>{notification.detail}</small>
                     </span>
                     <button
                       type="button"
@@ -697,7 +685,6 @@ function SettingsPage({ defaultTab = "profile", focusPassword = false }) {
               <div className="settings-card-heading">
                 <div>
                   <h3>Thông tin workspace</h3>
-                  <p>Cấu hình chung cho không gian làm việc của bạn.</p>
                 </div>
               </div>
               <div className="settings-workspace-fields">

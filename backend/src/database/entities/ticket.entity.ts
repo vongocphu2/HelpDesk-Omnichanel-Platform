@@ -50,6 +50,33 @@ export class Ticket {
     @Column({ type: 'boolean', default: false })
     is_urgent_bumped: boolean;
 
+    @Column({ type: 'varchar', length: 20, default: 'pending' })
+    ai_status: 'pending' | 'processing' | 'completed' | 'failed' | 'skipped';
+
+    @Column({ type: 'int', default: 0 })
+    ai_attempts: number;
+
+    @Column({ type: 'timestamptz', nullable: true })
+    ai_next_attempt_at: Date | null;
+
+    @Column({ type: 'varchar', length: 64, nullable: true })
+    ai_error: string | null;
+
+    @Column({ type: 'varchar', length: 100, nullable: true })
+    ai_model: string | null;
+
+    @Column({ type: 'timestamptz', nullable: true })
+    ai_analyzed_at: Date | null;
+
+    @Column({ type: 'numeric', precision: 4, scale: 3, nullable: true })
+    urgency_score: number | null;
+
+    @Column({ type: 'text', nullable: true })
+    ai_reason: string | null;
+
+    @Column({ type: 'jsonb', nullable: true })
+    ai_detected_keywords: string[] | null;
+
     @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
     created_at: Date;
 

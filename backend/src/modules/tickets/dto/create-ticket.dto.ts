@@ -1,4 +1,5 @@
-import { IsEmail, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString, MinLength, Validate } from 'class-validator';
+import { AttachmentValidator } from './attachment.validator.js';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateTicketDto {
@@ -43,5 +44,6 @@ export class CreateTicketDto {
     @ApiPropertyOptional({ description: 'Đường dẫn tệp đính kèm (URL hoặc file path)', example: 'https://storage.helpdesk.io/receipt_duplicate.png' })
     @IsOptional()
     @IsString()
+    @Validate(AttachmentValidator)
     attachment_url?: string;
 }

@@ -1,5 +1,6 @@
-
+// Các thành phần NestJS dùng để xử lý nghiệp vụ và trả lỗi HTTP
 import {Injectable,NotFoundException,ConflictException,Logger,BadRequestException,} from '@nestjs/common';
+
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 
@@ -14,6 +15,8 @@ import {
 
 import { CreateTicketDto } from './dto/create-ticket.dto.js';
 import { QueryTicketDto } from './dto/query-ticket.dto.js';
+
+import { UpdateTicketDto } from './dto/update-ticket.dto.js';
 
 @Injectable()
 export class TicketsService {
@@ -37,7 +40,7 @@ export class TicketsService {
 
     @InjectRepository(TicketStatusHistory)
     private readonly statusHistoryRepo: Repository<TicketStatusHistory>,
-  ) {}
+  ) { }
 
   /**
    * Sinh mã Ticket duy nhất dạng TK-xxxx.
@@ -144,6 +147,7 @@ export class TicketsService {
   async createFromWebForm(
     dto: CreateTicketDto,
     manager?: EntityManager,
+    telegramCustomerId?: string,
   ): Promise<Ticket> {
     const userRepo = manager
       ? manager.getRepository(User)
@@ -165,37 +169,68 @@ export class TicketsService {
       `Tiếp nhận yêu cầu từ: ${dto.customer_email} - Tiêu đề: ${dto.subject}`,
     );
 
-    // 1. Tìm hoặc tạo khách hàng
-    let customer = await userRepo.findOne({
-      where: { email: dto.customer_email },
-    });
+    // 1. Xác định khách hàng theo kênh.
+    let customer: User;
 
-    if (!customer) {
-      const customerRole = await this.getOrCreateRole(
-        'customer',
-        manager,
-      );
-
-      customer = userRepo.create({
-        full_name: dto.customer_name,
-        email: dto.customer_email,
-        phone: dto.customer_phone || null,
-        role_id: customerRole.role_id,
-        status: 'active',
-      });
-
-      customer = await userRepo.save(customer);
-    } else if (
-      dto.customer_name &&
-      customer.full_name !== dto.customer_name
-    ) {
-      customer.full_name = dto.customer_name;
-
-      if (dto.customer_phone) {
-        customer.phone = dto.customer_phone;
+    if (dto.channel_type === 'telegram') {
+      if (!manager || !telegramCustomerId) {
+        throw new ConflictException(
+          'Telegram phải xác định khách hàng trong transaction trước khi tạo ticket',
+        );
       }
 
-      await userRepo.save(customer);
+      const telegramCustomer = await userRepo.findOne({
+        where: { user_id: telegramCustomerId },
+      });
+
+      if (
+        !telegramCustomer ||
+        !telegramCustomer.telegram_user_id ||
+        telegramCustomer.status !== 'active'
+      ) {
+        throw new ConflictException(
+          'Khách hàng Telegram không tồn tại hoặc không hoạt động',
+        );
+      }
+
+      // Không tìm bằng email, không ghi đè hồ sơ tài khoản.
+      customer = telegramCustomer;
+    } else {
+      const existingCustomer = await userRepo.findOne({
+        where: { email: dto.customer_email },
+      });
+
+      if (!existingCustomer) {
+        const customerRole = await this.getOrCreateRole(
+          'customer',
+          manager,
+        );
+
+        customer = userRepo.create({
+          full_name: dto.customer_name,
+          email: dto.customer_email,
+          phone: dto.customer_phone || null,
+          role_id: customerRole.role_id,
+          status: 'active',
+        });
+
+        customer = await userRepo.save(customer);
+      } else {
+        customer = existingCustomer;
+
+        if (
+          dto.customer_name &&
+          customer.full_name !== dto.customer_name
+        ) {
+          customer.full_name = dto.customer_name;
+
+          if (dto.customer_phone) {
+            customer.phone = dto.customer_phone;
+          }
+
+          await userRepo.save(customer);
+        }
+      }
     }
 
     // 2. Tìm hoặc tạo kênh tiếp nhận
@@ -282,7 +317,8 @@ export class TicketsService {
         'ticket.assigned_agent',
         'assigned_agent',
       )
-      .leftJoinAndSelect('ticket.channel', 'channel');
+      .leftJoinAndSelect('ticket.channel', 'channel')
+      .leftJoinAndSelect('ticket.messages', 'messages');
 
     if (query.status) {
       qb.andWhere('ticket.status = :status', {
@@ -334,6 +370,7 @@ export class TicketsService {
 
     qb.orderBy('ticket.is_urgent_bumped', 'DESC')
       .addOrderBy('ticket.created_at', 'DESC')
+      .addOrderBy('ticket.ticket_id', 'ASC')
       .skip(skip)
       .take(limit);
 
@@ -346,6 +383,79 @@ export class TicketsService {
       totalPages: Math.ceil(total / limit),
       data,
     };
+  }
+
+  async update(
+    identifier: string,
+    dto: UpdateTicketDto,
+    changedBy: string | null = null,
+  ): Promise<Ticket> {
+    if (dto.status === undefined && dto.priority === undefined) {
+      throw new BadRequestException(
+        'Cần cung cấp status hoặc priority để cập nhật',
+      );
+    }
+
+    return this.ticketRepo.manager.transaction(async (manager) => {
+      const ticketRepo = manager.getRepository(Ticket);
+      const historyRepo = manager.getRepository(TicketStatusHistory);
+
+      const isUuid =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          identifier,
+        );
+
+      const ticket = await ticketRepo.findOne({
+        where: isUuid
+          ? { ticket_id: identifier }
+          : { ticket_code: identifier },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!ticket) {
+        throw new NotFoundException(
+          `Không tìm thấy yêu cầu hỗ trợ với mã/ID: ${identifier}`,
+        );
+      }
+
+      const oldStatus = ticket.status;
+      const statusChanged =
+        dto.status !== undefined && dto.status !== oldStatus;
+      const priorityChanged =
+        dto.priority !== undefined && dto.priority !== ticket.priority;
+
+      if (statusChanged) {
+        ticket.status = dto.status!;
+        ticket.closed_at =
+          dto.status === 'closed' ? new Date() : null;
+      }
+
+      if (priorityChanged) {
+        ticket.priority = dto.priority!;
+
+        // Hạ priority thủ công phải gỡ cờ đẩy đầu hàng đợi.
+        if (dto.priority !== 'urgent') {
+          ticket.is_urgent_bumped = false;
+        }
+      }
+
+      if (statusChanged || priorityChanged) {
+        await ticketRepo.save(ticket);
+      }
+
+      if (statusChanged) {
+        await historyRepo.save(
+          historyRepo.create({
+            ticket_id: ticket.ticket_id,
+            old_status: oldStatus,
+            new_status: ticket.status,
+            changed_by: changedBy,
+          }),
+        );
+      }
+
+      return this.findById(ticket.ticket_id, manager);
+    });
   }
 
   /**

@@ -1,5 +1,8 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { EmailController } from './email.controller.js';
+import { EmailService } from './email.service.js';
+import { AuthService } from '../auth/auth.service.js';
 
 describe('EmailController', () => {
   let controller: EmailController;
@@ -7,6 +10,19 @@ describe('EmailController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [EmailController],
+      providers: [
+        {
+          provide: AuthService,
+          useValue: { authenticate: vi.fn() },
+        },
+        {
+          provide: EmailService,
+          useValue: {
+            testImapConnection: vi.fn(),
+            checkNewEmailsAutomatically: vi.fn(),
+          },
+        },
+      ],
     }).compile();
 
     controller = module.get<EmailController>(EmailController);

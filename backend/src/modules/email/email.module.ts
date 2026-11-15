@@ -5,9 +5,11 @@ import { EmailController } from './email.controller.js';
 import { TicketsModule } from '../tickets/tickets.module.js';
 import { EmailProcessedMessage } from './email-processed.entity.js';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuthModule } from '../auth/auth.module.js';
 @Module({
   imports: [
-    ConfigModule, 
+    AuthModule,
+    ConfigModule,
     TicketsModule,
     TypeOrmModule.forFeature([EmailProcessedMessage]),
   ],
@@ -15,4 +17,4 @@ import { TypeOrmModule } from '@nestjs/typeorm';
   controllers: [EmailController],
   exports: [EmailService],
 })
-export class EmailModule {}
+export class EmailModule { }

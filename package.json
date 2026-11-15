@@ -1,0 +1,17 @@
+{
+  "name": "helpdesk-plus-c1se92",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HelpDesk+ Omnichannel Support System (C1SE.92)",
+  "scripts": {
+    "start:dev": "npm run start:dev --prefix backend",
+    "start": "npm run start:dev --prefix backend",
+    "backend": "npm run start:dev --prefix backend",
+    "frontend": "npm run dev --prefix frontend",
+    "db:clean": "npm run db:clean --prefix backend",
+    "build:backend": "npm run build --prefix backend",
+    "build:frontend": "npm run build --prefix frontend",
+    "build": "npm run build --prefix backend && npm run build --prefix frontend"
+  }
+}
+

@@ -15,14 +15,24 @@ export class User {
     @Column({ type: 'varchar', length: 255 })
     full_name: string;
 
-    @Column({ type: 'varchar', length: 255, unique: true })
-    email: string;
+    @Column({
+        type: 'varchar',
+        length: 255,
+        unique: true,
+        nullable: true,
+    })
+    email: string | null;
 
     @Column({ type: 'varchar', length: 20, nullable: true })
     phone: string | null;
 
-    @Column({ type: 'varchar', length: 255, nullable: true })
-    password_hash: string | null; // Nullable cho khách vãng lai qua Telegram/Email
+    @Column({
+        type: 'varchar',
+        length: 255,
+        nullable: true,
+        select: false,
+    })
+    password_hash: string | null;
 
     @Column({ type: 'uuid' })
     role_id: string;
@@ -35,6 +45,21 @@ export class User {
 
     @Column({ type: 'varchar', length: 50, nullable: true })
     telegram_chat_id: string | null;
+
+    @Column({
+        type: 'varchar',
+        length: 50,
+        nullable: true,
+        unique: true,
+    })
+    telegram_user_id: string | null;
+
+    @Column({
+        type: 'varchar',
+        length: 255,
+        nullable: true,
+    })
+    telegram_contact_email: string | null;
 
     @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
     created_at: Date;
