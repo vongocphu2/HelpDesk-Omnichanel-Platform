@@ -9,6 +9,8 @@ import {
     TicketStatusHistory,
 } from '../../database/entities/index.js';
 import { TicketsService } from './tickets.service.js';
+// Task 4.4 - Tự động phân công Ticket theo Round-robin
+import { RoundRobinAssignmentService } from './round-robin-assignment.service.js';
 import { TicketsController } from './tickets.controller.js';
 import { AuthModule } from '../auth/auth.module.js';
 
@@ -25,7 +27,13 @@ import { AuthModule } from '../auth/auth.module.js';
         ]),
     ],
     controllers: [TicketsController],
-    providers: [TicketsService],
-    exports: [TicketsService],
+    providers: [
+        TicketsService,
+        RoundRobinAssignmentService,
+    ],
+    exports: [
+        TicketsService,
+        RoundRobinAssignmentService,
+    ],
 })
 export class TicketsModule { }

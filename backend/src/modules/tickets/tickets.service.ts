@@ -1,6 +1,6 @@
 // Các thành phần NestJS dùng để xử lý nghiệp vụ và trả lỗi HTTP
 import {Injectable,NotFoundException,ConflictException,Logger,BadRequestException,} from '@nestjs/common';
-
+import { RoundRobinAssignmentService } from './round-robin-assignment.service.js';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 
@@ -40,6 +40,7 @@ export class TicketsService {
 
     @InjectRepository(TicketStatusHistory)
     private readonly statusHistoryRepo: Repository<TicketStatusHistory>,
+    private readonly roundRobinService: RoundRobinAssignmentService,
   ) { }
 
   /**
@@ -279,6 +280,25 @@ export class TicketsService {
     });
 
     await statusHistoryRepo.save(statusHistory);
+    // Task 4.4 - Tự động phân công Ticket mới theo Round-robin.
+    // Nếu không có Agent, Ticket vẫn được tạo để chờ phân công.
+  try {
+    await this.roundRobinService.assignNextAgent(
+    savedTicket.ticket_id,
+    manager,
+  );
+} catch (error) {
+  if (
+    error instanceof ConflictException &&
+    error.message === 'Không có Agent đang hoạt động để phân công'
+  ) {
+    this.logger.warn(
+      `Ticket ${savedTicket.ticket_code} đang chờ Agent phù hợp`,
+    );
+  } else {
+    throw error;
+  }
+}
 
     this.logger.log(
       `Tạo Ticket thành công: ${savedTicket.ticket_code} - ${savedTicket.ticket_id}`,
