@@ -232,6 +232,12 @@ function InboxScreen({ initialQuery = "" }) {
   const [activeFilter, setActiveFilter] = useState("Tất cả");
   const [selectedTicketId, setSelectedTicketId] = useState(null);
   const [assignedTickets, setAssignedTickets] = useState({});
+  // Task 4.7 - Assign Modal
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [availableAgents, setAvailableAgents] = useState([]);
+  const [selectedAgentId, setSelectedAgentId] = useState("");
+  const [assignLoading, setAssignLoading] = useState(false);
+  const [assignError, setAssignError] = useState("");
   const [ticketStatuses, setTicketStatuses] = useState({});
   const [repliesByTicket, setRepliesByTicket] = useState({});
   const [draft, setDraft] = useState("");
@@ -362,6 +368,81 @@ setFeedState("ready");
     setDraft("");
     setAttachmentName("");
   };
+  /**
+ * Task 4.7 - Mở cửa sổ phân công Ticket cho Agent.
+ * - Kiểm tra Ticket đang được chọn.
+ * - Khởi tạo lại trạng thái Modal.
+ * - Gọi API GET /tickets/agents để lấy Agent đang hoạt động.
+ * - Hiển thị thông báo nếu tải danh sách thất bại.
+ */
+  const openAssignModal = async () => {
+    // Không thực hiện nếu chưa chọn Ticket
+    if (!selectedTicket) return;
+    // Xóa lỗi, Agent đã chọn và danh sách Agent cũ
+    setAssignError("");
+    setSelectedAgentId("");
+    setAvailableAgents([]);
+    setAssignModalOpen(true);
+    setAssignLoading(true);
+
+    try {
+    // Gọi Backend để lấy danh sách Agent đang hoạt động
+      const agents = await ticketService.getActiveAgents();
+    // Cập nhật danh sách Agent hiển thị trong Modal
+      setAvailableAgents(agents);
+    } catch (error) {
+      // Hiển thị lỗi nếu API thất bại
+      setAssignError(
+        error.response?.data?.message ||
+        "Không thể tải danh sách Agent"
+      );
+    } finally {
+      // Kết thúc trạng thái đang tải
+      setAssignLoading(false);
+    }
+  };
+  /**
+ * Task 4.7 - Xác nhận phân công Ticket cho Agent.
+ * - Kiểm tra Ticket và Agent đã chọn.
+ * - Gọi API PATCH /tickets/:id/assign của Task 4.2.
+ * - Cập nhật giao diện sau khi Backend lưu thành công.
+ * - Hiển thị lỗi nếu phân công thất bại.
+ */
+  const confirmAssignment = async () => {
+  // Không gửi yêu cầu nếu thiếu Ticket, Agent hoặc đang xử lý  
+    if (!selectedTicket || !selectedAgentId || assignLoading) return;
+    // Bật trạng thái xử lý và xóa thông báo lỗi trước đó
+    setAssignLoading(true);
+    setAssignError("");
+    // Gửi UUID của Agent đến Backend để phân công Ticket
+    try {
+      await ticketService.assignTicket(
+        selectedTicket.id,
+        selectedAgentId
+      );
+      // Tìm thông tin Agent vừa được phân công
+      const agent = availableAgents.find(
+        (item) => item.user_id === selectedAgentId
+      );
+        // Chỉ cập nhật giao diện khi Backend đã lưu thành công
+      setAssignedTickets((current) => ({
+        ...current,
+        [selectedTicket.id]: agent.full_name ?? "Agent",
+      }));
+       // Đóng Modal sau khi phân công thành công
+      setAssignModalOpen(false);
+  } catch (error) {
+     // Giữ Modal mở và hiển thị thông báo khi có lỗi
+     setAssignError(
+      error.response?.data?.message ||
+      error.message ||
+      "Phân công Ticket thất bại"
+    );
+  } finally {
+    // Tắt trạng thái xử lý dù thành công hay thất bại
+    setAssignLoading(false);
+  }
+  };
 
   const assignToMe = () => {
     if (!selectedTicket) return;
@@ -371,16 +452,83 @@ setFeedState("ready");
     }));
   };
 
-  const handleAssignChange = (newAssignee) => {
-    if (!selectedTicket) return;
-    setAssignedTickets((current) => ({
-      ...current,
-      [selectedTicket.id]: newAssignee,
-    }));
-  };
+  
 
   return (
     <section className="unified-inbox">
+      {assignModalOpen && (
+    <div
+      role="presentation"
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0, 0, 0, 0.5)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1000,
+      }}
+    >
+      <div
+       role="dialog"
+        aria-modal="true"
+        aria-labelledby="assign-modal-title"
+        style={{
+         background: "white",
+          padding: 24,
+          borderRadius: 12,
+          width: "min(420px, 90vw)",
+        }}
+      >
+         <h3 id="assign-modal-title">Phân công Ticket</h3>
+
+       <p>Chọn Agent phụ trách Ticket {selectedTicket?.id}</p>
+
+        <select
+          aria-label="Chọn Agent"
+          value={selectedAgentId}
+          onChange={(event) => setSelectedAgentId(event.target.value)}
+          disabled={assignLoading}
+          style={{ width: "100%", padding: 10, marginBottom: 12 }}
+        >
+          <option value="">-- Chọn Agent --</option>
+          {availableAgents.map((agent) => (
+            <option key={agent.user_id} value={agent.user_id}>
+            {agent.full_name}
+            </option>
+          ))}
+          </select>
+
+         {assignError && (
+            <p role="alert" style={{ color: "#dc2626" }}>
+          {assignError}
+            </p>
+          )}
+
+        {!assignLoading && availableAgents.length === 0 && !assignError && (
+          <p>Không có Agent đang hoạt động.</p>
+        )}
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+         <button
+          type="button"
+          disabled={assignLoading}
+          onClick={() => setAssignModalOpen(false)}
+          >
+          Hủy
+        </button>
+
+        <button
+          type="button"
+          disabled={assignLoading || !selectedAgentId}
+          onClick={confirmAssignment}
+        >
+          {assignLoading ? "Đang xử lý..." : "Xác nhận phân công"}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
       {!selectedTicket ? (
         <div className="unified-queue">
           <div className="unified-queue-heading">
@@ -569,12 +717,10 @@ setFeedState("ready");
               <button
                 type="button"
                 className="detail-assign-button"
-                onClick={assignToMe}
+                onClick={openAssignModal}
               >
-                <UserRound size={15} />{" "}
-                {assignedTickets[selectedTicket.id]
-                  ? "Đã phân công"
-                  : "Phân công cho tôi"}
+                <UserRound size={15} /> Phân công Agent
+                
               </button>
               <button
                 type="button"
@@ -856,18 +1002,16 @@ setFeedState("ready");
                   <span style={{ fontSize: "10px", color: "#718078", fontWeight: 600 }}>
                     Chuyển phân công (4 thành viên):
                   </span>
-                  <select
-                    className="ticket-detail-assign-select"
-                    value={assignedTickets[selectedTicket.id] ?? selectedTicket.assignee}
-                    onChange={(e) => handleAssignChange(e.target.value)}
+                  <button
+                       type="button"
+                       className="ticket-detail-assign-select"
+                       onClick={openAssignModal}
                   >
-                    <option value="">-- Chưa phân công --</option>
-                    {teamMembers.map((member) => (
-                      <option key={member.name} value={member.name}>
-                        {member.name} ({member.initials})
-                      </option>
-                    ))}
-                  </select>
+                    {assignedTickets[selectedTicket.id] ??
+                       selectedTicket.assignee ??
+                       "Chưa phân công"}
+                     {" · Đổi Agent"}
+                  </button>
                 </label>
               </div>
             </aside>

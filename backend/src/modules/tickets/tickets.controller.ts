@@ -146,6 +146,23 @@ export class TicketsController {
             },
         };
     }
+    /**
+ * Task 4.7 - Danh sách Agent cho Assign Modal.
+ */
+    @Get('agents')
+    @ApiBearerAuth()
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles('admin', 'manager')
+    @ApiOperation({ summary: 'Lấy danh sách Agent đang hoạt động' })
+    async getActiveAgents() {
+        const agents = await this.ticketsService.getActiveAgents();
+
+    return {
+    statusCode: HttpStatus.OK,
+    message: 'Lấy danh sách Agent thành công',
+    data: agents,
+    };
+    }
 
     @Get(':id')
     @ApiBearerAuth()

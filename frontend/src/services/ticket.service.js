@@ -91,7 +91,33 @@ export const ticketService = {
         const response = await api.get(`/tickets/${encodeURIComponent(id)}`);
         return response.data || response;
     },
-};
+    /**
+    * Task 4.7 - Phân công Ticket cho Agent.
+    * Kết nối API Task 4.2 của Backend.
+    * Chỉ Admin/Manager có quyền thực hiện.
+     */
+    async assignTicket(ticketId, agentId) {
+    if (!ticketId || !agentId) {
+        throw new Error('Vui lòng chọn Ticket và Agent');
+    }
+    
+
+    const response = await api.patch(
+        `/tickets/${encodeURIComponent(ticketId)}/assign`,
+        { agent_id: agentId }
+    );
+
+    return response.data || response;
+    },
+/**
+ * Task 4.7 - Lấy danh sách Agent đang hoạt động.
+**/
+    async getActiveAgents() {
+        const response = await api.get('/tickets/agents');
+        return response.data?.data ?? response.data ?? [];
+    },
+    };
+    
 
 export default ticketService;
 

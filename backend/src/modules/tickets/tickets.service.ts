@@ -42,6 +42,25 @@ export class TicketsService {
     private readonly statusHistoryRepo: Repository<TicketStatusHistory>,
     private readonly roundRobinService: RoundRobinAssignmentService,
   ) { }
+  /**
+ * Task 4.7 - Lấy danh sách Agent đang hoạt động.
+ */
+  async getActiveAgents() {
+   const agents = await this.userRepo
+    .createQueryBuilder('user')
+    .innerJoin('user.role', 'role')
+    .where('LOWER(role.role_name) = :role', { role: 'agent' })
+    .andWhere('LOWER(user.status) = :status', { status: 'active' })
+    .orderBy('user.full_name', 'ASC')
+    .getMany();
+
+   return agents.map((agent) => ({
+    user_id: agent.user_id,
+    full_name: agent.full_name,
+    team_id: agent.team_id,
+  }));
+  }
+  
 
   /**
    * Sinh mã Ticket duy nhất dạng TK-xxxx.
@@ -550,7 +569,7 @@ async assignTicket(ticketId: string, agentId: string): Promise<Ticket> {
     const ticket = await ticketRepo
       .createQueryBuilder('ticket')
       .setLock('pessimistic_write')
-      .where('ticket.ticket_id = :id OR ticket.ticket_code = :id', {
+      .where('ticket.ticket_id::text = :id OR ticket.ticket_code = :id', {
         id: ticketId,
       })
       .getOne();
