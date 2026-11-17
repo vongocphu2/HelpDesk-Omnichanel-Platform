@@ -4,9 +4,11 @@ import { Ticket, TicketMessage, User } from '../../database/entities/index.js';
 import { OutboundDispatcherService } from './outbound-dispatcher.service.js';
 import { EmailModule } from '../email/email.module.js';
 import { TelegramModule } from '../telegram/telegram.module.js';
+import { TicketsRealtimeModule } from './tickets-realtime.module.js';
 
 @Module({
   imports: [
+    TicketsRealtimeModule,
     forwardRef(() => EmailModule),
     forwardRef(() => TelegramModule),
     TypeOrmModule.forFeature([Ticket, TicketMessage, User]),

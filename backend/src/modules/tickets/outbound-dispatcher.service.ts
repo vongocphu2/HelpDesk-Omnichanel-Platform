@@ -35,7 +35,7 @@ export class OutboundDispatcherService {
     private readonly userRepo: Repository<User>,
     private readonly config: ConfigService,
     private readonly gateway: TicketsGateway,
-    // ModuleRef cho phép lấy EmailService/TelegramService lúc runtime
+    // Resolve exported singleton channel services at runtime across modules.
     // thay vì inject vào constructor — tránh circular ESM dependency
     private readonly moduleRef: ModuleRef,
   ) {}
@@ -122,8 +122,8 @@ export class OutboundDispatcherService {
   }
 
   private async dispatchEmail(ticket: Ticket, content: string): Promise<boolean> {
-    // Lấy EmailService lúc runtime để tránh circular dependency lúc khởi tạo
-    const emailService = await this.moduleRef.resolve(EmailService);
+    // Channel providers belong to their own modules, not TicketsModule.
+    const emailService = this.moduleRef.get(EmailService, { strict: false });
 
     const customer = ticket.customer as User | null;
     const toEmail =
@@ -149,8 +149,8 @@ export class OutboundDispatcherService {
     const token = this.config.get<string>('TELEGRAM_BOT_TOKEN');
     if (!token) return false;
 
-    // Lấy TelegramService lúc runtime để tránh circular dependency lúc khởi tạo
-    const telegramService = await this.moduleRef.resolve(TelegramService);
+    // Channel providers belong to their own modules, not TicketsModule.
+    const telegramService = this.moduleRef.get(TelegramService, { strict: false });
 
     const customer = ticket.customer as User | null;
     const chatId =

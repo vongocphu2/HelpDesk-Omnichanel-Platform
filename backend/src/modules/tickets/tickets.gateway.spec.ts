@@ -28,6 +28,29 @@ function setup() {
 // ─── Test cases ───────────────────────────────────────────────────────────────
 
 describe('TicketsGateway', () => {
+  it('joins inbox only after authentication succeeds', async () => {
+    const { gateway, authService } = setup();
+    let authenticate!: (user: object) => void;
+    authService.authenticate.mockReturnValueOnce(new Promise(resolve => { authenticate = resolve; }));
+    const client = { id: 'socket', handshake: {auth:{token:'token'},query:{},headers:{}}, data:{}, join:vi.fn(), disconnect:vi.fn() };
+    const pending = gateway.handleConnection(client as never);
+    gateway.handleJoinTicket(client as never, {ticket_id:'test'});
+    expect(client.join).not.toHaveBeenCalled();
+    authenticate({user_id:'agent', role:'agent'});
+    await pending;
+    expect(client.join).toHaveBeenCalledWith('inbox');
+    gateway.handleJoinTicket(client as never, {ticket_id:'test'});
+    expect(client.join).toHaveBeenCalledWith('ticket:test');
+  });
+
+  it('disconnects an invalid token without joining rooms', async () => {
+    const { gateway, authService } = setup();
+    authService.authenticate.mockRejectedValueOnce(new Error('invalid token'));
+    const client = {id:'socket',handshake:{auth:{token:'bad'},query:{},headers:{}},data:{},join:vi.fn(),disconnect:vi.fn()};
+    await gateway.handleConnection(client as never);
+    expect(client.disconnect).toHaveBeenCalledOnce();
+    expect(client.join).not.toHaveBeenCalled();
+  });
 
   it('emitNewMessage phát tới đúng room của ticket', () => {
     // Gateway phải phát sóng tới room "ticket:<ticket_id>"
@@ -45,7 +68,7 @@ describe('TicketsGateway', () => {
     });
 
     // Phải gọi to('ticket:ticket-uuid-001') trước khi emit
-    expect(toMock).toHaveBeenCalledWith('ticket:ticket-uuid-001');
+    expect(toMock).toHaveBeenCalledWith(['ticket:ticket-uuid-001', 'inbox']);
     // Event name phải là 'message:new'
     expect(emitMock).toHaveBeenCalledWith(
       'message:new',
@@ -69,8 +92,7 @@ describe('TicketsGateway', () => {
       priority: 'medium',
     });
 
-    expect(toMock).toHaveBeenCalledWith('ticket:ticket-uuid-002');
-    expect(toMock).toHaveBeenCalledWith('inbox');
+    expect(toMock).toHaveBeenCalledWith(['ticket:ticket-uuid-002', 'inbox']);
     expect(emitMock).toHaveBeenCalledWith(
       'ticket:updated',
       expect.objectContaining({ status: 'resolved' }),
@@ -90,7 +112,7 @@ describe('TicketsGateway', () => {
       is_urgent_bumped: true,
     });
 
-    expect(toMock).toHaveBeenCalledWith('ticket:ticket-uuid-003');
+    expect(toMock).toHaveBeenCalledWith(['ticket:ticket-uuid-003', 'inbox']);
     expect(emitMock).toHaveBeenCalledWith(
       'triage:completed',
       expect.objectContaining({
@@ -106,7 +128,7 @@ describe('TicketsGateway', () => {
     const { gateway } = setup();
 
     const joinMock = vi.fn();
-    const client = { id: 'socket-001', join: joinMock } as never;
+    const client = { id: 'socket-001', data: { user: { role: 'agent' } }, join: joinMock } as never;
 
     gateway.handleJoinTicket(client, { ticket_id: 'ticket-uuid-004' });
 
@@ -118,7 +140,7 @@ describe('TicketsGateway', () => {
     const { gateway } = setup();
 
     const leaveMock = vi.fn();
-    const client = { id: 'socket-001', leave: leaveMock } as never;
+    const client = { id: 'socket-001', data: { user: { role: 'agent' } }, leave: leaveMock } as never;
 
     gateway.handleLeaveTicket(client, { ticket_id: 'ticket-uuid-004' });
 

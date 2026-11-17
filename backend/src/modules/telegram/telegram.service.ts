@@ -168,16 +168,22 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     text: string,
   ): Promise<void> {
     try {
-      await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
         method: 'POST',
+        signal: AbortSignal.timeout(15000),
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chat_id: chatId,
           text,
         }),
       });
-    } catch (err) {
-      this.logger.debug(`Không gửi được tin nhắn phản hồi Telegram: ${err}`);
+      const payload = await response.json() as { ok?: boolean };
+      if (!response.ok || payload.ok !== true) {
+        throw new Error('TELEGRAM_DELIVERY_FAILED');
+      }
+    } catch {
+      // Never expose a fetch error containing the bot token in its URL.
+      throw new Error('TELEGRAM_DELIVERY_FAILED');
     }
   }
 
@@ -214,7 +220,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
           token,
           message.chat.id,
           `👋 Xin chào ${message.from?.first_name || 'quý khách'}!\n\nChào mừng bạn đến với kênh tiếp nhận yêu cầu hỗ trợ **HelpDesk+**.\n\n📌 Hãy nhập trực tiếp nội dung sự cố hoặc câu hỏi bạn cần trợ giúp tại đây. Hệ thống sẽ tự động tạo Ticket và kết nối tới nhân viên CSKH nhanh chóng.`,
-        );
+        ).catch(() => this.logger.warn('Telegram welcome delivery failed'));
       }
       return;
     }
@@ -282,7 +288,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
     const telegramUserIdText = String(telegramUserId);
 
-    await this.dataSource.transaction(async (manager) => {
+    const created = await this.dataSource.transaction(async (manager) => {
       const repo = manager.getRepository(TelegramProcessedUpdate);
 
       // Chỉ một transaction được quyền xử lý một update_id (Deduplication).
@@ -381,15 +387,19 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
           `ticket=${ticket.ticket_code}`,
       );
 
-      // Phản hồi xác nhận tự động tới khách hàng trên Telegram
+      return ticket;
+    });
+    if (created) {
+      this.ticketsService.publishCreatedTicket(created);
+      // Acknowledge only after the intake transaction commits.
       const botToken = this.configService.get<string>('TELEGRAM_BOT_TOKEN');
       if (botToken && message.chat.id) {
         void this.sendTelegramMessage(
           botToken,
           message.chat.id,
-          `✅ HelpDesk+ đã tiếp nhận yêu cầu hỗ trợ của bạn!\n🎫 Mã Ticket: ${ticket.ticket_code}\n📌 Tiêu đề: ${ticket.subject}\n\nĐội ngũ CSKH sẽ phản hồi bạn trong thời gian sớm nhất.`,
-        );
+          `✅ HelpDesk+ đã tiếp nhận yêu cầu hỗ trợ của bạn!\n🎫 Mã Ticket: ${created.ticket_code}\n📌 Tiêu đề: ${created.subject}\n\nĐội ngũ CSKH sẽ phản hồi bạn trong thời gian sớm nhất.`,
+        ).catch(() => this.logger.warn('Telegram acknowledgment delivery failed'));
       }
-    });
+    }
   }
 }

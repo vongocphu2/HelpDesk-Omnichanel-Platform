@@ -69,13 +69,13 @@ function setup(channelType = 'web') {
   };
 
 // Constructor mới: ticketRepo, messageRepo, userRepo, config, gateway, moduleRef
-// EmailService và TelegramService không còn trong constructor — moduleRef.resolve() trả đúng service theo class
+// EmailService và TelegramService không còn trong constructor — moduleRef.get() trả đúng service theo class
 const moduleRef = {
-    resolve: vi.fn().mockImplementation((token: unknown) => {
+    get: vi.fn().mockImplementation((token: unknown) => {
         // token là class constructor — so sánh trực tiếp
-        if (token === EmailService) return Promise.resolve(emailService);
-        if (token === TelegramService) return Promise.resolve(telegramService);
-        return Promise.resolve(null);
+        if (token === EmailService) return emailService;
+        if (token === TelegramService) return telegramService;
+        return null;
     }),
 };
 

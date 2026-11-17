@@ -34,15 +34,17 @@ describe('TicketTriageService', () => {
     blockedCode: string | null;
   };
   let builder: Record<
-    'update' | 'set' | 'where' | 'setParameter' | 'execute',
+    'update' | 'set' | 'where' | 'setParameter' | 'returning' | 'execute',
     ReturnType<typeof vi.fn>
   >;
   let tickets: {
     update: ReturnType<typeof vi.fn>;
     createQueryBuilder: ReturnType<typeof vi.fn>;
   };
+  let gateway: { emitTriageCompleted: ReturnType<typeof vi.fn>; emitTicketUpdated: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
+    gateway = { emitTriageCompleted: vi.fn(), emitTicketUpdated: vi.fn() };
     database = {
       query: vi.fn().mockResolvedValueOnce([]).mockResolvedValue([claimed]),
     };
@@ -64,9 +66,10 @@ describe('TicketTriageService', () => {
       set: vi.fn(),
       where: vi.fn(),
       setParameter: vi.fn(),
-      execute: vi.fn().mockResolvedValue({ affected: 1 }),
+      returning: vi.fn(),
+      execute: vi.fn().mockResolvedValue({ affected: 1, raw: [{ ticket_id: claimed.ticket_id, ticket_code: claimed.ticket_code, sentiment_label: result.sentiment, urgency_score: result.urgencyScore, is_urgent_bumped: true, priority: 'urgent' }] }),
     };
-    for (const method of ['update', 'set', 'where', 'setParameter'] as const)
+    for (const method of ['update', 'set', 'where', 'setParameter', 'returning'] as const)
       builder[method].mockReturnValue(builder);
     tickets = {
       update: vi.fn().mockResolvedValue({ affected: 1 }),
@@ -78,10 +81,26 @@ describe('TicketTriageService', () => {
       messages as unknown as Repository<TicketMessage>,
       openai as unknown as TriageProviderService,
       { get: () => 0.8 } as unknown as ConfigService,
+      gateway as never,
     );
   });
 
   afterEach(() => vi.useRealTimers());
+
+  it('publishes persisted values rather than the proposed priority bump', async () => {
+    const persisted = {ticket_id:claimed.ticket_id, ticket_code:claimed.ticket_code, sentiment_label:'frustrated', urgency_score:'0.950', is_urgent_bumped:false, priority:'low'};
+    builder.execute.mockResolvedValueOnce({affected:1,raw:[persisted]});
+    await service.processPendingTickets();
+    expect(gateway.emitTriageCompleted).toHaveBeenCalledWith(expect.objectContaining({is_urgent_bumped:false, urgency_score:0.95}));
+    expect(gateway.emitTicketUpdated).toHaveBeenCalledWith(expect.objectContaining({priority:'low'}));
+  });
+
+  it('does not publish when the conditional AI update did not save', async () => {
+    builder.execute.mockResolvedValueOnce({affected:0,raw:[]});
+    await service.processPendingTickets();
+    expect(gateway.emitTriageCompleted).not.toHaveBeenCalled();
+    expect(gateway.emitTicketUpdated).not.toHaveBeenCalled();
+  });
 
   it.each([false, true])(
     'spaces calls to different tickets even after a failure (%s)',

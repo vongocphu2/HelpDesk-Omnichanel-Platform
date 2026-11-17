@@ -34,6 +34,7 @@ function setup(found = true) {
 
     const transaction = vi.fn((callback) => callback(manager));
     const repository = { manager: { transaction } };
+    const gateway = { emitTicketUpdated: vi.fn(), emitNewMessage: vi.fn() };
 
     const service = new TicketsService(
         repository as never,
@@ -42,14 +43,37 @@ function setup(found = true) {
         {} as never,
         {} as never,
         {} as never,
+        {} as never,
+        gateway as never,
     );
 
     vi.spyOn(service, 'findById').mockResolvedValue(ticket as Ticket);
 
-    return { service, ticket, tickets, history, transaction };
+    return { service, ticket, tickets, history, transaction, gateway };
 }
 
 describe('TicketsService.update', () => {
+    it('publishes only after commit and never on rollback', async () => {
+        const {service, transaction, gateway} = setup();
+        let finish!: () => void;
+        transaction.mockImplementationOnce(async callback => {
+            const ticket = await callback({
+                getRepository: () => ({findOne: async () => ({ticket_id:'id', status:'open', priority:'medium'}),save:async (x: unknown) => x}),
+            });
+            await new Promise<void>(resolve => { finish = resolve; });
+            return ticket;
+        });
+        const pending = service.update('TK-1001', {priority:'high'});
+        await vi.waitFor(() => expect(finish).toBeTypeOf('function'));
+        expect(gateway.emitTicketUpdated).not.toHaveBeenCalled();
+        finish();
+        await pending;
+        expect(gateway.emitTicketUpdated).toHaveBeenCalledOnce();
+        gateway.emitTicketUpdated.mockClear();
+        transaction.mockRejectedValueOnce(new Error('rollback'));
+        await expect(service.update('TK-1001',{priority:'low'})).rejects.toThrow('rollback');
+        expect(gateway.emitTicketUpdated).not.toHaveBeenCalled();
+    });
     it('rejects an empty update', async () => {
         const { service, transaction } = setup();
 

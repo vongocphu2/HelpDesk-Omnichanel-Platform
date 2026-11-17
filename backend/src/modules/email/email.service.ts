@@ -236,7 +236,7 @@ private async processEmailWithTransaction(
     .trim()
     .toLowerCase();
 
-  await this.dataSource.transaction(async (manager) => {
+  const created = await this.dataSource.transaction(async (manager) => {
     const processedRepo = manager.getRepository(EmailProcessedMessage);
 
     // Khóa duy nhất ngăn đăng ký trùng một email.
@@ -298,7 +298,9 @@ private async processEmailWithTransaction(
       ticketId: ticket.ticket_id,
       ticketCode: ticket.ticket_code,
     });
+    return ticket;
   });
+  if (created) this.ticketsService.publishCreatedTicket(created);
 }
 
 

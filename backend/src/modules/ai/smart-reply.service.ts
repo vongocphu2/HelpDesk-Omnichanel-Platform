@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Ticket, TicketMessage } from '../../database/entities/index.js';
 import { TriageProviderService } from './triage-provider.service.js';
-import { GeminiTriageService } from './gemini-triage.service.js';
 import { ConfigService } from '@nestjs/config';
 import { TriageError } from './triage-result.js';
 
@@ -18,9 +17,6 @@ export interface SmartReplyResult {
 export class SmartReplyService {
   private readonly logger = new Logger(SmartReplyService.name);
 
-  // Gemini instance dùng riêng cho Smart Reply (cùng config)
-  private readonly gemini: GeminiTriageService;
-
   constructor(
     @InjectRepository(Ticket)
     private readonly ticketRepo: Repository<Ticket>,
@@ -28,9 +24,7 @@ export class SmartReplyService {
     private readonly messageRepo: Repository<TicketMessage>,
     private readonly provider: TriageProviderService,
     private readonly config: ConfigService,
-  ) {
-    this.gemini = new GeminiTriageService(config);
-  }
+  ) {}
 
   /**
    * Tìm các ticket đã giải quyết có chủ đề tương tự (PostgreSQL full-text similarity).
@@ -87,13 +81,10 @@ export class SmartReplyService {
     const ticket = await this.ticketRepo.findOne({
       where: isUuid ? { ticket_id: ticketId } : { ticket_code: ticketId },
       relations: { channel: true, customer: true },
-
     });
 
     if (!ticket) {
-      throw new NotFoundException(
-        `Không tìm thấy ticket: ${ticketId}`,
-      );
+      throw new NotFoundException(`Không tìm thấy ticket: ${ticketId}`);
     }
 
     // Lấy tối đa 10 tin nhắn gần nhất để làm ngữ cảnh
@@ -106,8 +97,7 @@ export class SmartReplyService {
     const conversation = [...messages]
       .reverse()
       .map(
-        (m) =>
-          `[${m.sender_type.toUpperCase()}]: ${m.content.slice(0, 400)}`,
+        (m) => `[${m.sender_type.toUpperCase()}]: ${m.content.slice(0, 400)}`,
       )
       .join('\n');
 
@@ -117,16 +107,15 @@ export class SmartReplyService {
     );
     const basedOnSimilar = similar.length > 0;
 
-    const similarContext =
-      basedOnSimilar
-        ? '\n\nVÍ DỤ XỬ LÝ TƯƠNG TỰ:\n' +
-          similar
-            .map(
-              (s, i) =>
-                `[Ví dụ ${i + 1}]\nKhách: ${s.question}\nAgent: ${s.answer}`,
-            )
-            .join('\n\n')
-        : '';
+    const similarContext = basedOnSimilar
+      ? '\n\nVÍ DỤ XỬ LÝ TƯƠNG TỰ:\n' +
+        similar
+          .map(
+            (s, i) =>
+              `[Ví dụ ${i + 1}]\nKhách: ${s.question}\nAgent: ${s.answer}`,
+          )
+          .join('\n\n')
+      : '';
 
     const prompt = `Bạn là nhân viên CSKH chuyên nghiệp của HelpDesk+.
 Hãy soạn một câu trả lời ngắn gọn, lịch sự, chuẩn mực bằng tiếng Việt cho khách hàng dựa trên lịch sử hội thoại.
@@ -139,12 +128,12 @@ LỊCH SỬ HỘI THOẠI:
 ${conversation}${similarContext}`;
 
     try {
-      const draft = await this.callGeminiRaw(prompt);
+      const draft = await this.callProvider(prompt);
       return {
         draft: draft.trim(),
         confidence: basedOnSimilar ? 0.85 : 0.7,
         based_on_similar: basedOnSimilar,
-        model: this.gemini.model,
+        model: this.provider.model,
       };
     } catch (error) {
       const code =
@@ -157,22 +146,68 @@ ${conversation}${similarContext}`;
   }
 
   /**
-   * Gọi Gemini với prompt tự do (không dùng JSON schema của triage).
+   * Use the configured provider with a free-text prompt, not the triage schema.
    */
-  private async callGeminiRaw(prompt: string): Promise<string> {
-    if (!this.gemini.isReady()) {
+  private async callProvider(prompt: string): Promise<string> {
+    if (!this.provider.isReady()) {
+      throw new TriageError('AI_NOT_CONFIGURED', false);
+    }
+
+    if (this.config.get<string>('ai.provider') === 'openai') {
+      const response = await fetch('https://api.openai.com/v1/responses', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.config.get<string>('ai.apiKey')!.trim()}`,
+        },
+        signal: AbortSignal.timeout(this.provider.timeoutMs),
+        body: JSON.stringify({
+          model: this.provider.model,
+          store: false,
+          input: prompt,
+          max_output_tokens: 1024,
+        }),
+      });
+      if (!response.ok) throw new TriageError(`AI_HTTP_${response.status}`);
+      const payload = (await response.json()) as {
+        status?: string;
+        output?: {
+          type?: string;
+          role?: string;
+          status?: string;
+          content?: { type?: string; text?: string }[];
+        }[];
+      };
+      if (payload.status !== 'completed')
+        throw new TriageError('AI_INCOMPLETE_OR_BLOCKED');
+      const messages = (payload.output ?? []).filter(
+        (item) => item.type === 'message' && item.role === 'assistant',
+      );
+      if (messages.some((item) => item.status !== 'completed'))
+        throw new TriageError('AI_INCOMPLETE_OR_BLOCKED');
+      const parts = messages.flatMap((item) => item.content ?? []);
+      if (parts.some((part) => part.type === 'refusal'))
+        throw new TriageError('AI_REFUSED', false);
+      const text = parts
+        .filter((part) => part.type === 'output_text')
+        .map((part) => part.text ?? '')
+        .join('');
+      if (!text.trim()) throw new TriageError('AI_EMPTY_RESPONSE');
+      return text;
+    }
+    if (this.config.get<string>('ai.provider') !== 'gemini') {
       throw new TriageError('AI_NOT_CONFIGURED', false);
     }
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${this.gemini.model}:generateContent`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${this.provider.model}:generateContent`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-goog-api-key': this.config.get<string>('ai.apiKey')!.trim(),
         },
-        signal: AbortSignal.timeout(this.gemini.timeoutMs),
+        signal: AbortSignal.timeout(this.provider.timeoutMs),
         body: JSON.stringify({
           contents: [{ role: 'user', parts: [{ text: prompt }] }],
           generationConfig: {
@@ -194,6 +229,9 @@ ${conversation}${similarContext}`;
       }[];
     };
 
+    if (payload.candidates?.[0]?.finishReason !== 'STOP') {
+      throw new TriageError('AI_INCOMPLETE_OR_BLOCKED');
+    }
     const text = (payload.candidates?.[0]?.content?.parts ?? [])
       .map((p) => p.text ?? '')
       .join('');

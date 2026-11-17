@@ -1,6 +1,7 @@
 // Các thành phần NestJS dùng để xử lý nghiệp vụ và trả lỗi HTTP
 import {Injectable,NotFoundException,ConflictException,Logger,BadRequestException,} from '@nestjs/common';
 import { RoundRobinAssignmentService } from './round-robin-assignment.service.js';
+import { TicketsGateway } from './tickets.gateway.js';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 
@@ -41,6 +42,7 @@ export class TicketsService {
     @InjectRepository(TicketStatusHistory)
     private readonly statusHistoryRepo: Repository<TicketStatusHistory>,
     private readonly roundRobinService: RoundRobinAssignmentService,
+    private readonly gateway: TicketsGateway,
   ) { }
   /**
  * Task 4.7 - Lấy danh sách Agent đang hoạt động.
@@ -324,7 +326,36 @@ export class TicketsService {
     );
 
     // 7. Đọc lại Ticket bằng Repository cùng transaction
-    return this.findById(savedTicket.ticket_id, manager);
+    const created = await this.findById(savedTicket.ticket_id, manager);
+    // Channel adapters publish after their enclosing transaction commits.
+    if (!manager) this.publishCreatedTicket(created);
+    return created;
+  }
+
+  publishCreatedTicket(ticket: Ticket): void {
+    this.publishTicketUpdated(ticket);
+    for (const message of ticket.messages ?? []) {
+      this.gateway.emitNewMessage({
+        message_id: message.message_id,
+        ticket_id: ticket.ticket_id,
+        ticket_code: ticket.ticket_code,
+        sender_type: message.sender_type,
+        content: message.content,
+        created_at: message.created_at,
+        is_ai_draft: message.is_ai_draft,
+      });
+    }
+  }
+
+  private publishTicketUpdated(ticket: Ticket): void {
+    this.gateway.emitTicketUpdated({
+      ticket_id: ticket.ticket_id,
+      ticket_code: ticket.ticket_code,
+      status: ticket.status,
+      priority: ticket.priority,
+      is_urgent_bumped: ticket.is_urgent_bumped,
+      assigned_agent_id: ticket.assigned_agent_id,
+    });
   }
 
   /**
@@ -435,7 +466,7 @@ export class TicketsService {
       );
     }
 
-    return this.ticketRepo.manager.transaction(async (manager) => {
+    const updated = await this.ticketRepo.manager.transaction(async (manager) => {
       const ticketRepo = manager.getRepository(Ticket);
       const historyRepo = manager.getRepository(TicketStatusHistory);
 
@@ -495,6 +526,8 @@ export class TicketsService {
 
       return this.findById(ticket.ticket_id, manager);
     });
+    this.publishTicketUpdated(updated);
+    return updated;
   }
 
   /**
@@ -560,7 +593,7 @@ export class TicketsService {
   }
   
 async assignTicket(ticketId: string, agentId: string): Promise<Ticket> {
-  return this.ticketRepo.manager.transaction(async (manager) => {
+  const assigned = await this.ticketRepo.manager.transaction(async (manager) => {
     const ticketRepo = manager.getRepository(Ticket);
     const userRepo = manager.getRepository(User);
 
@@ -607,6 +640,8 @@ async assignTicket(ticketId: string, agentId: string): Promise<Ticket> {
 
     return this.findById(ticket.ticket_id, manager);
   });
+  this.publishTicketUpdated(assigned);
+  return assigned;
 }
 
 /**
@@ -619,7 +654,9 @@ async assignTicketRoundRobin(ticketId: string): Promise<Ticket> {
   this.logger.log(
     `Đã phân công tự động Ticket ${assignedTicket.ticket_code} cho Agent ${assignedTicket.assigned_agent_id}`,
   );
-  return this.findById(assignedTicket.ticket_id);
+  const ticket = await this.findById(assignedTicket.ticket_id);
+  this.publishTicketUpdated(ticket);
+  return ticket;
 }
 //Tạo API Conversation đầu tiên//
 async getConversation(

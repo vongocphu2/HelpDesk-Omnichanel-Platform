@@ -94,6 +94,7 @@ function setupAssignment(options: {
     {} as never,
     {} as never,
     roundRobinService as never,
+    { emitTicketUpdated: vi.fn() } as never,
   );
 
   vi.spyOn(service, 'findById').mockResolvedValue(ticket as Ticket);

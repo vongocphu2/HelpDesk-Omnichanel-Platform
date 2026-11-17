@@ -8,7 +8,7 @@ import {
   MessageBody,
 } from '@nestjs/websockets';
 import { Logger } from '@nestjs/common';
-import { Server, Socket } from 'socket.io';
+import { Namespace, Socket } from 'socket.io';
 import { AuthService } from '../auth/auth.service.js';
 
 /**
@@ -29,7 +29,7 @@ import { AuthService } from '../auth/auth.service.js';
 })
 export class TicketsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
-  server!: Server;
+  server!: Namespace;
 
   private readonly logger = new Logger(TicketsGateway.name);
 
@@ -38,6 +38,7 @@ export class TicketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
   async handleConnection(client: Socket): Promise<void> {
     // Xác thực JWT từ query param hoặc Authorization header
     const token =
+      (client.handshake.auth?.token as string | undefined) ??
       (client.handshake.query['token'] as string | undefined) ??
       (client.handshake.headers.authorization?.replace(/^Bearer /i, '') ?? '');
 
@@ -51,6 +52,7 @@ export class TicketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
       const user = await this.authService.authenticate(token);
       // Gắn user vào socket data để dùng sau
       client.data.user = user;
+      await client.join('inbox');
       this.logger.debug(`[WS] Connected: ${client.id} user=${user.user_id} role=${user.role}`);
     } catch {
       this.logger.debug(`[WS] Client ${client.id} token không hợp lệ — ngắt kết nối`);
@@ -67,7 +69,7 @@ export class TicketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { ticket_id: string },
   ): void {
-    if (!data?.ticket_id) return;
+    if (!client.data?.user || typeof data?.ticket_id !== 'string') return;
     const room = `ticket:${data.ticket_id}`;
     void client.join(room);
     this.logger.debug(`[WS] ${client.id} joined ${room}`);
@@ -78,7 +80,7 @@ export class TicketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { ticket_id: string },
   ): void {
-    if (!data?.ticket_id) return;
+    if (!client.data?.user || typeof data?.ticket_id !== 'string') return;
     const room = `ticket:${data.ticket_id}`;
     void client.leave(room);
     this.logger.debug(`[WS] ${client.id} left ${room}`);
@@ -97,10 +99,9 @@ export class TicketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
     is_ai_draft: boolean;
   }): void {
     this.server
-      .to(`ticket:${payload.ticket_id}`)
+      .to([`ticket:${payload.ticket_id}`, 'inbox'])
       .emit('message:new', payload);
-    // Phát tới room 'inbox' cho danh sách tổng Unified Inbox
-    this.server.to('inbox').emit('message:new', payload);
+
   }
 
   /** Phát khi ticket được cập nhật (status, priority, assign) */
@@ -113,9 +114,9 @@ export class TicketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
     assigned_agent_id?: string | null;
   }): void {
     this.server
-      .to(`ticket:${payload.ticket_id}`)
+      .to([`ticket:${payload.ticket_id}`, 'inbox'])
       .emit('ticket:updated', payload);
-    this.server.to('inbox').emit('ticket:updated', payload);
+
   }
 
   /** Phát khi AI Triage hoàn tất */
@@ -127,8 +128,8 @@ export class TicketsGateway implements OnGatewayConnection, OnGatewayDisconnect 
     is_urgent_bumped: boolean;
   }): void {
     this.server
-      .to(`ticket:${payload.ticket_id}`)
+      .to([`ticket:${payload.ticket_id}`, 'inbox'])
       .emit('triage:completed', payload);
-    this.server.to('inbox').emit('triage:completed', payload);
+
   }
 }

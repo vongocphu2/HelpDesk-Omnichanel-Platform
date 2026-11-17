@@ -6,6 +6,7 @@ import { DataSource, Repository } from 'typeorm';
 import { Ticket, TicketMessage } from '../../database/entities/index.js';
 import { TriageProviderService } from './triage-provider.service.js';
 import { shouldBumpPriority, TriageError } from './triage-result.js';
+import { TicketsGateway } from '../tickets/tickets.gateway.js';
 
 interface ClaimedTicket {
   ticket_id: string;
@@ -27,6 +28,7 @@ export class TicketTriageService implements OnModuleInit {
     private readonly messages: Repository<TicketMessage>,
     private readonly provider: TriageProviderService,
     private readonly config: ConfigService,
+    private readonly gateway: TicketsGateway,
   ) {}
 
   onModuleInit(): void {
@@ -137,11 +139,27 @@ export class TicketTriageService implements OnModuleInit {
           },
         )
         .setParameter('bump', bump)
+        .returning(['ticket_id', 'ticket_code', 'sentiment_label', 'urgency_score', 'is_urgent_bumped', 'priority'])
         .execute();
-      if (saved.affected)
+      if (saved.affected) {
+        const persisted = saved.raw[0];
+        this.gateway.emitTriageCompleted({
+          ticket_id: persisted.ticket_id,
+          ticket_code: persisted.ticket_code,
+          sentiment_label: persisted.sentiment_label,
+          urgency_score: persisted.urgency_score == null ? null : Number(persisted.urgency_score),
+          is_urgent_bumped: persisted.is_urgent_bumped,
+        });
+        this.gateway.emitTicketUpdated({
+          ticket_id: persisted.ticket_id,
+          ticket_code: persisted.ticket_code,
+          priority: persisted.priority,
+          is_urgent_bumped: persisted.is_urgent_bumped,
+        });
         this.logger.log(
           `[AI TRIAGE COMPLETED] ticket=${ticket.ticket_code}; sentiment=${result.sentiment}; urgent=${bump}`,
         );
+      }
     } catch (error) {
       const failure =
         error instanceof TriageError

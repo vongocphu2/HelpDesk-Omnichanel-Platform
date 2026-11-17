@@ -26,6 +26,7 @@ import { TicketsService } from './tickets.service.js';
 //DTO kiểm tra dữ liệu đầu vào của các API Ticket
 import { CreateTicketDto } from './dto/create-ticket.dto.js';
 import { QueryTicketDto } from './dto/query-ticket.dto.js';
+import { ConversationQueryDto } from './dto/conversation-query.dto.js';
 //// Task 4.2 - DTO phân công Ticket thủ công (Lộc)
 import { AssignTicketDto } from './dto/assign-ticket.dto.js';
 //Task 4.1 - DTO cập nhật trạng thái và độ ưu tiên (Phú)
@@ -198,13 +199,13 @@ export class TicketsController {
     })
     async getConversation(
         @Param('id') id: string,
-        @Query('page') page?: string,
-        @Query('limit') limit?: string,
+        @Query(new ValidationPipe({ whitelist: true, transform: true }))
+        query: ConversationQueryDto,
     ) {
         const conversation = await this.ticketsService.getConversation(
             id,
-            page ? Math.max(1, parseInt(page, 10)) : 1,
-            limit ? Math.min(100, Math.max(1, parseInt(limit, 10))) : 20,
+            query.page,
+            query.limit,
         );
 
         return {
@@ -348,7 +349,6 @@ async assignTicket(
     // Tích hợp JWT/RBAC từ Task 4.3 của Phú.
     // Chỉ Admin và Manager được phép phân công Ticket cho Agent.
     @Post(':id/assign-round-robin')
-    @Patch(':id/assign-round-robin')
     @ApiBearerAuth()
     @UseGuards(AuthGuard, RolesGuard)
     @Roles('admin', 'manager')

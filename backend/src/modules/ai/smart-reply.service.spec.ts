@@ -72,13 +72,13 @@ function setup() {
   return { service, ticket, ticketRepo, messageRepo };
 }
 
-// ─── Mock helper: spy callGeminiRaw mà không dùng mockResolvedValue ───────────
+// ─── Mock helper: spy callProvider mà không dùng mockResolvedValue ───────────
 // vi.spyOn(obj as never, method) trả về kiểu never → không có mockResolvedValue.
 // Dùng mockImplementation(() => Promise.resolve(...)) để bypass lỗi TypeScript.
 // Sửa lại — ép kiểu rõ ràng hơn
 function spyGemini(service: SmartReplyService, response: string) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return vi.spyOn(service as any, 'callGeminiRaw').mockImplementation(
+  return vi.spyOn(service as any, 'callProvider').mockImplementation(
     () => Promise.resolve(response),
   );
 }

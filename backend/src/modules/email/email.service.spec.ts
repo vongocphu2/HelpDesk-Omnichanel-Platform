@@ -44,6 +44,7 @@ describe('EmailService', () => {
         {
           provide: TicketsService,
           useValue: {
+            publishCreatedTicket: vi.fn(),
             createFromWebForm: vi.fn().mockResolvedValue({
               ticket_id: 'ticket-id', ticket_code: 'TK-1234',
             }),
@@ -179,6 +180,8 @@ describe('EmailService', () => {
     await service.checkNewEmailsAutomatically();
     expect(moduleRef.get(TicketsService).createFromWebForm).toHaveBeenCalledTimes(2);
     expect(saved()).toEqual({ uidValidity: '1', lastProcessedUid: 44, failedUids: [43] });
+    // Only the successfully committed email generates a realtime event.
+    expect(moduleRef.get(TicketsService).publishCreatedTicket).toHaveBeenCalledTimes(1);
   });
 
   it('processes overlapping new and failed UIDs once and retains persistent failures', async () => {
