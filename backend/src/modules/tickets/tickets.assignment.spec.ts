@@ -77,6 +77,13 @@ function setupAssignment(options: {
     manager: { transaction },
   };
 
+  const roundRobinService = {
+    assignNextAgent: vi.fn(async (id: string) => {
+      ticket.assigned_agent_id = agent.user_id;
+      return ticket as Ticket;
+    }),
+  };
+
   // Giữ cách khởi tạo TicketsService tương thích
   // với bộ test Task 4.1 hiện có của Phú.
   const service = new TicketsService(
@@ -86,6 +93,7 @@ function setupAssignment(options: {
     {} as never,
     {} as never,
     {} as never,
+    roundRobinService as never,
   );
 
   vi.spyOn(service, 'findById').mockResolvedValue(ticket as Ticket);
@@ -98,6 +106,7 @@ function setupAssignment(options: {
     agentQuery,
     ticketRepository,
     transaction,
+    roundRobinService,
   };
 }
 
@@ -187,5 +196,18 @@ describe('TicketsService.assignTicket - Task 4.2', () => {
     ).rejects.toThrow('Database save failed');
 
     expect(transaction).toHaveBeenCalledOnce();
+  });
+
+  describe('TicketsService.assignTicketRoundRobin - Task 4.7', () => {
+    it('gọi RoundRobinAssignmentService và trả về Ticket đầy đủ', async () => {
+      const { service, ticket, agent, roundRobinService } = setupAssignment();
+
+      const result = await service.assignTicketRoundRobin(ticket.ticket_id);
+
+      expect(roundRobinService.assignNextAgent).toHaveBeenCalledWith(
+        ticket.ticket_id,
+      );
+      expect(result.assigned_agent_id).toBe(agent.user_id);
+    });
   });
 });

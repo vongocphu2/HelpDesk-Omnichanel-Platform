@@ -609,4 +609,61 @@ async assignTicket(ticketId: string, agentId: string): Promise<Ticket> {
   });
 }
 
+/**
+ * Task 4.7 & 4.4 - Phân công Ticket tự động theo Round-robin từ Modal.
+ * Tích hợp kiểm tra quyền RBAC (chỉ Admin và Manager).
+ * Gọi lại RoundRobinAssignmentService và trả về Ticket đầy đủ relations.
+ */
+async assignTicketRoundRobin(ticketId: string): Promise<Ticket> {
+  const assignedTicket = await this.roundRobinService.assignNextAgent(ticketId);
+  this.logger.log(
+    `Đã phân công tự động Ticket ${assignedTicket.ticket_code} cho Agent ${assignedTicket.assigned_agent_id}`,
+  );
+  return this.findById(assignedTicket.ticket_id);
+}
+//Tạo API Conversation đầu tiên//
+async getConversation(
+  identifier: string,
+  page = 1,
+  limit = 20,
+) {
+  const ticket = await this.findById(identifier);
+
+  const allMessages = [...(ticket.messages ?? [])].sort(
+    (a, b) =>
+      new Date(a.created_at).getTime() -
+      new Date(b.created_at).getTime(),
+  );
+
+  const total = allMessages.length;
+  const totalPages = Math.ceil(total / limit) || 1;
+  const safePage = Math.min(Math.max(page, 1), totalPages);
+  const start = (safePage - 1) * limit;
+
+  const messages = allMessages.slice(start, start + limit).map((message) => ({
+    message_id: message.message_id,
+    sender_type: message.sender_type,
+    sender_name: message.sender?.full_name ?? null,
+    content: message.content,
+    attachments: message.attachments ?? null,
+    created_at: message.created_at,
+    is_ai_draft: message.is_ai_draft,
+  }));
+
+  return {
+    ticket_id: ticket.ticket_id,
+    ticket_code: ticket.ticket_code,
+    subject: ticket.subject,
+    channel: ticket.channel?.channel_type ?? null,
+    status: ticket.status,
+    priority: ticket.priority,
+    sentiment_label: ticket.sentiment_label,
+    is_urgent_bumped: ticket.is_urgent_bumped,
+    messages,
+    page: safePage,
+    limit,
+    total,
+    totalPages,
+  };
+  }
 }

@@ -11,6 +11,8 @@ import { TelegramModule } from './modules/telegram/telegram.module.js';
 import { TelegramProcessedUpdate } from './modules/telegram/telegram-processed-update.entity.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { AiModule } from './modules/ai/ai.module.js';
+
+
 import {
   Role,
   User,

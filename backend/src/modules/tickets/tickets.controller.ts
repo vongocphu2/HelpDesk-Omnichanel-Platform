@@ -35,12 +35,31 @@ import { AuthGuard } from '../auth/auth.guard.js';
 import type { AuthenticatedRequest } from '../auth/auth.guard.js';
 import { RolesGuard } from '../auth/roles.guard.js';
 import { Roles } from '../auth/roles.decorator.js';
+// Sprint 5 - Smart Reply + Outbound Dispatcher
+import { SmartReplyService } from '../ai/smart-reply.service.js';
+import { OutboundDispatcherService } from './outbound-dispatcher.service.js';
+import { IsString, IsOptional, IsBoolean, MinLength, MaxLength } from 'class-validator';
+
+class SendReplyBodyDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(5000)
+  content!: string;
+
+  @IsOptional()
+  @IsBoolean()
+  is_ai_draft?: boolean;
+}
 
 
 @ApiTags('Tickets (Quản lý Yêu cầu Hỗ trợ)')
 @Controller('tickets')
 export class TicketsController {
-    constructor(private readonly ticketsService: TicketsService) { }
+    constructor(
+        private readonly ticketsService: TicketsService,
+        private readonly smartReplyService: SmartReplyService,
+        private readonly outboundDispatcher: OutboundDispatcherService,
+    ) { }
 
     @Post()
     @HttpCode(HttpStatus.CREATED)
@@ -163,6 +182,37 @@ export class TicketsController {
     data: agents,
     };
     }
+    /**
+    * Sprint 5.1 - Unified Conversation History (pagination + agent access)
+    */
+    @Get(':id/conversation')
+    @ApiBearerAuth()
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles('admin', 'manager', 'agent')
+    @ApiOperation({
+        summary: 'Lấy lịch sử hội thoại của Ticket (phân trang)',
+    })
+    @ApiParam({
+        name: 'id',
+        description: 'UUID hoặc mã Ticket',
+    })
+    async getConversation(
+        @Param('id') id: string,
+        @Query('page') page?: string,
+        @Query('limit') limit?: string,
+    ) {
+        const conversation = await this.ticketsService.getConversation(
+            id,
+            page ? Math.max(1, parseInt(page, 10)) : 1,
+            limit ? Math.min(100, Math.max(1, parseInt(limit, 10))) : 20,
+        );
+
+        return {
+            statusCode: HttpStatus.OK,
+            message: 'Lấy lịch sử hội thoại thành công',
+            data: conversation,
+        };
+    }
 
     @Get(':id')
     @ApiBearerAuth()
@@ -194,6 +244,63 @@ export class TicketsController {
             data: ticket,
         };
     }
+        /**
+     * Sprint 5.2 — AI Auto-Draft Smart Reply
+     * GET /tickets/:id/smart-reply
+     */
+    @Get(':id/smart-reply')
+    @ApiBearerAuth()
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles('admin', 'manager', 'agent')
+    @ApiOperation({
+        summary: 'Tạo câu trả lời gợi ý AI cho Ticket (Task 5.2)',
+        description: 'Gemini quét lịch sử hội thoại và sinh draft chuẩn mực. Agent xem qua rồi bấm gửi.',
+    })
+    @ApiParam({ name: 'id', description: 'UUID hoặc mã Ticket' })
+    @ApiResponse({ status: HttpStatus.OK, description: 'Draft AI được tạo thành công.' })
+    @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Không tìm thấy Ticket.' })
+    async getSmartReply(@Param('id') id: string) {
+        const result = await this.smartReplyService.generateDraft(id);
+        return {
+            statusCode: HttpStatus.OK,
+            message: 'Tạo gợi ý câu trả lời AI thành công',
+            data: result,
+        };
+    }
+
+    /**
+     * Sprint 5.4 — Outbound Multi-channel Reply Dispatcher
+     * POST /tickets/:id/reply
+     */
+    @Post(':id/reply')
+    @ApiBearerAuth()
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles('admin', 'manager', 'agent')
+    @HttpCode(HttpStatus.CREATED)
+    @ApiOperation({
+        summary: 'Agent gửi phản hồi ra kênh khách (Task 5.4)',
+        description: 'Lưu tin nhắn vào DB và tự động gửi ra Email / Telegram / Web tương ứng với kênh của Ticket.',
+    })
+    @ApiParam({ name: 'id', description: 'UUID hoặc mã Ticket' })
+    @ApiResponse({ status: HttpStatus.CREATED, description: 'Gửi phản hồi thành công.' })
+    @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Không tìm thấy Ticket.' })
+    async sendReply(
+        @Param('id') id: string,
+        @Body(new ValidationPipe({ whitelist: true, transform: true })) dto: SendReplyBodyDto,
+        @Req() request: AuthenticatedRequest,
+    ) {
+        const result = await this.outboundDispatcher.sendReply(
+            id,
+            request.user.user_id,
+            { content: dto.content, is_ai_draft: dto.is_ai_draft },
+        );
+        return {
+            statusCode: HttpStatus.CREATED,
+            message: 'Gửi phản hồi thành công',
+            data: result,
+        };
+    }
+
     // Task 4.2 - Manual Ticket Assignment (Lộc)
     // Tích hợp JWT/RBAC từ Task 4.3 của Phú.
     // Chỉ Admin và Manager được phép phân công Ticket cho Agent.
@@ -236,5 +343,45 @@ async assignTicket(
     data: ticket,
   };
 }
+
+    // Task 4.7 - Auto Ticket Assignment via Round-robin from Modal (Lộc)
+    // Tích hợp JWT/RBAC từ Task 4.3 của Phú.
+    // Chỉ Admin và Manager được phép phân công Ticket cho Agent.
+    @Post(':id/assign-round-robin')
+    @Patch(':id/assign-round-robin')
+    @ApiBearerAuth()
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles('admin', 'manager')
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({
+        summary: 'Phân công Ticket tự động theo Round-robin (Admin/Manager)',
+    })
+    @ApiParam({
+        name: 'id',
+        description: 'UUID hoặc mã Ticket (ví dụ TK-7641)',
+    })
+    @ApiResponse({
+        status: HttpStatus.OK,
+        description: 'Phân công Ticket tự động theo Round-robin thành công',
+    })
+    @ApiResponse({
+        status: HttpStatus.CONFLICT,
+        description: 'Ticket đã được phân công hoặc không có Agent đang hoạt động',
+    })
+    @ApiResponse({
+        status: HttpStatus.NOT_FOUND,
+        description: 'Không tìm thấy Ticket',
+    })
+    async assignTicketRoundRobin(
+        @Param('id') id: string,
+    ) {
+        const ticket = await this.ticketsService.assignTicketRoundRobin(id);
+
+        return {
+            statusCode: HttpStatus.OK,
+            message: 'Phân công Ticket tự động theo Round-robin thành công',
+            data: ticket,
+        };
+    }
 
 }

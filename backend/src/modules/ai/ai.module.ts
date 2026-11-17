@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Ticket, TicketMessage } from '../../database/entities/index.js';
 import { TriageProviderService } from './triage-provider.service.js';
 import { TicketTriageService } from './ticket-triage.service.js';
+import { SmartReplyService } from './smart-reply.service.js';
 import { AiController } from './ai.controller.js';
 import { AuthModule } from '../auth/auth.module.js';
 
@@ -21,6 +22,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
     ]),
   ],
   controllers: [AiController],
-  providers: [TriageProviderService, ThrottlerGuard, TicketTriageService],
+  providers: [TriageProviderService, ThrottlerGuard, TicketTriageService, SmartReplyService],
+  exports: [SmartReplyService, TriageProviderService],
 })
 export class AiModule { }

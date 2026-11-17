@@ -14,6 +14,11 @@ const STAFF_ROLES = ['admin', 'manager', 'agent'];
 const JWT_ISSUER = 'helpdesk-api';
 const JWT_AUDIENCE = 'helpdesk-staff';
 
+// Existing databases may store role names in uppercase; RBAC uses lowercase.
+function normalizeRole(roleName: string | undefined): string {
+    return roleName?.toLowerCase() ?? '';
+}
+
 export interface AuthUser {
     user_id: string;
     full_name: string;
@@ -72,7 +77,7 @@ export class AuthService {
             user_id: user.user_id,
             full_name: user.full_name,
             email: user.email,
-            role: user.role.role_name,
+            role: normalizeRole(user.role?.role_name),
         };
     }
 
@@ -98,7 +103,7 @@ export class AuthService {
             !user ||
             !passwordMatches ||
             user.status !== 'active' ||
-            !STAFF_ROLES.includes(user.role?.role_name)
+            !STAFF_ROLES.includes(normalizeRole(user.role?.role_name))
         ) {
             throw new UnauthorizedException(
                 'Email hoặc mật khẩu không đúng',
@@ -159,7 +164,7 @@ export class AuthService {
         if (
             !user ||
             user.status !== 'active' ||
-            !STAFF_ROLES.includes(user.role?.role_name)
+            !STAFF_ROLES.includes(normalizeRole(user.role?.role_name))
         ) {
             throw new UnauthorizedException(
                 'Tài khoản không còn quyền truy cập',
