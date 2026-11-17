@@ -225,7 +225,7 @@ function TriageDetails({ ticket }) {
   </section>;
 }
 
-function InboxScreen({ initialQuery = "" }) {
+function InboxScreen({ initialQuery = "", currentUser = null }) {
   const [feedState, setFeedState] = useState("loading");
   const [ticketList, setTicketList] = useState([]);
   const [query, setQuery] = useState(initialQuery);
@@ -236,6 +236,7 @@ function InboxScreen({ initialQuery = "" }) {
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [availableAgents, setAvailableAgents] = useState([]);
   const [selectedAgentId, setSelectedAgentId] = useState("");
+  const [assignmentMode, setAssignmentMode] = useState("manual"); // "manual" | "auto"
   const [assignLoading, setAssignLoading] = useState(false);
   const [assignError, setAssignError] = useState("");
   const [ticketStatuses, setTicketStatuses] = useState({});
@@ -245,6 +246,9 @@ function InboxScreen({ initialQuery = "" }) {
   const [attachmentName, setAttachmentName] = useState("");
   const attachmentRef = useRef(null);
   const timelineEndRef = useRef(null);
+  
+  // Check if user is agent (non-admin/manager)
+  const isAgent = currentUser?.role === "agent";
 
   useEffect(() => {
     if (selectedTicketId) {
@@ -370,17 +374,25 @@ setFeedState("ready");
   };
   /**
  * Task 4.7 - Mở cửa sổ phân công Ticket cho Agent.
+ * - Kiểm tra quyền (chỉ admin/manager được phép)
  * - Kiểm tra Ticket đang được chọn.
  * - Khởi tạo lại trạng thái Modal.
  * - Gọi API GET /tickets/agents để lấy Agent đang hoạt động.
  * - Hiển thị thông báo nếu tải danh sách thất bại.
  */
   const openAssignModal = async () => {
+    // Không thực hiện nếu user là agent
+    if (isAgent) {
+      setAssignError("Chỉ admin/manager mới có quyền phân công ticket");
+      return;
+    }
+    
     // Không thực hiện nếu chưa chọn Ticket
     if (!selectedTicket) return;
-    // Xóa lỗi, Agent đã chọn và danh sách Agent cũ
+    // Xóa lỗi, Agent đã chọn, danh sách Agent cũ, đặt lại chế độ
     setAssignError("");
     setSelectedAgentId("");
+    setAssignmentMode("manual");
     setAvailableAgents([]);
     setAssignModalOpen(true);
     setAssignLoading(true);
@@ -404,45 +416,72 @@ setFeedState("ready");
   /**
  * Task 4.7 - Xác nhận phân công Ticket cho Agent.
  * - Kiểm tra Ticket và Agent đã chọn.
- * - Gọi API PATCH /tickets/:id/assign của Task 4.2.
+ * - Gọi API PATCH /tickets/:id/assign của Task 4.2 (thủ công)
+ *   hoặc POST /tickets/:id/assign-auto (tự động round-robin)
  * - Cập nhật giao diện sau khi Backend lưu thành công.
  * - Hiển thị lỗi nếu phân công thất bại.
  */
   const confirmAssignment = async () => {
-  // Không gửi yêu cầu nếu thiếu Ticket, Agent hoặc đang xử lý  
-    if (!selectedTicket || !selectedAgentId || assignLoading) return;
-    // Bật trạng thái xử lý và xóa thông báo lỗi trước đó
-    setAssignLoading(true);
-    setAssignError("");
-    // Gửi UUID của Agent đến Backend để phân công Ticket
-    try {
-      await ticketService.assignTicket(
+  if (!selectedTicket || assignLoading) return;
+  
+  // Ở chế độ manual, phải chọn agent
+  if (assignmentMode === "manual" && !selectedAgentId) return;
+  
+  setAssignLoading(true);
+  setAssignError("");
+
+  try {
+    let result;
+    
+    if (assignmentMode === "auto") {
+      // Gọi API tự động round-robin
+      result = await ticketService.assignTicketAuto(selectedTicket.id);
+    } else {
+      // Gọi API phân công thủ công
+      result = await ticketService.assignTicket(
         selectedTicket.id,
         selectedAgentId
       );
-      // Tìm thông tin Agent vừa được phân công
-      const agent = availableAgents.find(
-        (item) => item.user_id === selectedAgentId
-      );
-        // Chỉ cập nhật giao diện khi Backend đã lưu thành công
-      setAssignedTickets((current) => ({
-        ...current,
-        [selectedTicket.id]: agent.full_name ?? "Agent",
-      }));
-       // Đóng Modal sau khi phân công thành công
-      setAssignModalOpen(false);
+    }
+
+    // Dùng tên agent từ RESPONSE API làm nguồn chính
+    // thay vì tìm trong availableAgents (có thể lỗi thời)
+    const assignedName =
+      result?.data?.assigned_agent?.full_name ||
+      result?.assigned_agent?.full_name ||
+      availableAgents.find((a) => a.user_id === selectedAgentId)?.full_name ||
+      "Agent";
+
+    // Cập nhật ticketList trực tiếp từ dữ liệu backend
+    // để polling lần sau không bị ghi đè ngược lại
+    setTicketList((current) =>
+      current.map((t) =>
+        t.id === selectedTicket.id
+          ? { ...t, assignee: assignedName }
+          : t
+      )
+    );
+
+    // Xóa state ghi đè cũ của ticket này (nếu có)
+    // để từ đây dùng ticket.assignee từ ticketList làm nguồn duy nhất
+    setAssignedTickets((current) => {
+      const next = { ...current };
+      delete next[selectedTicket.id];
+      return next;
+    });
+
+    setAssignModalOpen(false);
   } catch (error) {
-     // Giữ Modal mở và hiển thị thông báo khi có lỗi
-     setAssignError(
+    setAssignError(
       error.response?.data?.message ||
       error.message ||
       "Phân công Ticket thất bại"
     );
   } finally {
-    // Tắt trạng thái xử lý dù thành công hay thất bại
     setAssignLoading(false);
   }
-  };
+};
+
 
   const assignToMe = () => {
     if (!selectedTicket) return;
@@ -484,29 +523,69 @@ setFeedState("ready");
 
        <p>Chọn Agent phụ trách Ticket {selectedTicket?.id}</p>
 
-        <select
-          aria-label="Chọn Agent"
-          value={selectedAgentId}
-          onChange={(event) => setSelectedAgentId(event.target.value)}
-          disabled={assignLoading}
-          style={{ width: "100%", padding: 10, marginBottom: 12 }}
-        >
-          <option value="">-- Chọn Agent --</option>
-          {availableAgents.map((agent) => (
-            <option key={agent.user_id} value={agent.user_id}>
-            {agent.full_name}
-            </option>
-          ))}
-          </select>
+        {/* Chế độ phân công */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: "block", marginBottom: 8, fontSize: 13, fontWeight: 600 }}>
+            Chế độ phân công
+          </label>
+          <div style={{ display: "flex", gap: 12 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 13 }}>
+              <input
+                type="radio"
+                name="assignmentMode"
+                value="manual"
+                checked={assignmentMode === "manual"}
+                onChange={(e) => setAssignmentMode(e.target.value)}
+                disabled={assignLoading}
+              />
+              <span>Thủ công</span>
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 13 }}>
+              <input
+                type="radio"
+                name="assignmentMode"
+                value="auto"
+                checked={assignmentMode === "auto"}
+                onChange={(e) => setAssignmentMode(e.target.value)}
+                disabled={assignLoading}
+              />
+              <span>Tự động (Round-robin)</span>
+            </label>
+          </div>
+        </div>
+
+        {/* Agent selector - chỉ hiển thị khi ở chế độ thủ công */}
+        {assignmentMode === "manual" && (
+          <select
+            aria-label="Chọn Agent"
+            value={selectedAgentId}
+            onChange={(event) => setSelectedAgentId(event.target.value)}
+            disabled={assignLoading}
+            style={{ width: "100%", padding: 10, marginBottom: 12 }}
+          >
+            <option value="">-- Chọn Agent --</option>
+            {availableAgents.map((agent) => (
+              <option key={agent.user_id} value={agent.user_id}>
+              {agent.full_name}
+              </option>
+            ))}
+            </select>
+        )}
 
          {assignError && (
-            <p role="alert" style={{ color: "#dc2626" }}>
+            <p role="alert" style={{ color: "#dc2626", marginBottom: 12 }}>
           {assignError}
             </p>
           )}
 
-        {!assignLoading && availableAgents.length === 0 && !assignError && (
-          <p>Không có Agent đang hoạt động.</p>
+        {!assignLoading && assignmentMode === "manual" && availableAgents.length === 0 && !assignError && (
+          <p style={{ color: "#6b7280", fontSize: 13, marginBottom: 12 }}>Không có Agent đang hoạt động.</p>
+        )}
+
+        {assignmentMode === "auto" && !assignLoading && (
+          <p style={{ color: "#047857", fontSize: 13, marginBottom: 12 }}>
+            🔄 Hệ thống sẽ tự động chọn Agent tiếp theo theo thứ tự Round-robin.
+          </p>
         )}
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
@@ -520,7 +599,7 @@ setFeedState("ready");
 
         <button
           type="button"
-          disabled={assignLoading || !selectedAgentId}
+          disabled={assignLoading || (assignmentMode === "manual" && !selectedAgentId)}
           onClick={confirmAssignment}
         >
           {assignLoading ? "Đang xử lý..." : "Xác nhận phân công"}
@@ -718,6 +797,8 @@ setFeedState("ready");
                 type="button"
                 className="detail-assign-button"
                 onClick={openAssignModal}
+                disabled={isAgent}
+                title={isAgent ? "Chỉ admin/manager mới có quyền phân công" : ""}
               >
                 <UserRound size={15} /> Phân công Agent
                 
@@ -1006,6 +1087,8 @@ setFeedState("ready");
                        type="button"
                        className="ticket-detail-assign-select"
                        onClick={openAssignModal}
+                       disabled={isAgent}
+                       title={isAgent ? "Chỉ admin/manager mới có quyền phân công" : ""}
                   >
                     {assignedTickets[selectedTicket.id] ??
                        selectedTicket.assignee ??
@@ -3690,7 +3773,7 @@ function App() {
             </footer>
           </div>
         ) : active === "Unified Inbox" ? (
-          <InboxScreen initialQuery={inboxSearch} />
+          <InboxScreen initialQuery={inboxSearch} currentUser={currentUser} />
         ) : active === "Ticket List" ? (
           <TicketManagement initialSearch={ticketSearch} />
         ) : active === "Settings" ? (

@@ -95,6 +95,9 @@ export const ticketService = {
     * Task 4.7 - Phân công Ticket cho Agent.
     * Kết nối API Task 4.2 của Backend.
     * Chỉ Admin/Manager có quyền thực hiện.
+    * Tìm Ticket
+    * Kiểm tả Agent có phù hợp hay không
+    * Lưu người phụ trách vào dtb
      */
     async assignTicket(ticketId, agentId) {
     if (!ticketId || !agentId) {
@@ -108,6 +111,24 @@ export const ticketService = {
     );
 
     return response.data || response;
+    },
+    /**
+     * Task 4.7 - Phân công Ticket tự động bằng Round-robin.
+     * Gọi API POST /tickets/:id/assign-round-robin
+     * Hệ thống tự động chọn Agent tiếp theo theo thứ tự vòng tròn
+     * Chỉ Admin/Manager có quyền thực hiện
+     */
+    async assignTicketAuto(ticketId) {
+        if (!ticketId) {
+            throw new Error('Vui lòng chọn Ticket');
+        }
+
+        const response = await api.post(
+            `/tickets/${encodeURIComponent(ticketId)}/assign-round-robin`,
+            {}
+        );
+
+        return response.data || response;
     },
 /**
  * Task 4.7 - Lấy danh sách Agent đang hoạt động.
