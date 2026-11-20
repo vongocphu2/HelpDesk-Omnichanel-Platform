@@ -16,6 +16,7 @@ import { CreateTicketDto } from './dto/create-ticket.dto.js';
 import { QueryTicketDto } from './dto/query-ticket.dto.js';
 
 import { UpdateTicketDto } from './dto/update-ticket.dto.js';
+import { RoundRobinAssignmentService } from './round-robin-assignment.service.js';
 
 @Injectable()
 export class TicketsService {
@@ -39,6 +40,7 @@ export class TicketsService {
 
     @InjectRepository(TicketStatusHistory)
     private readonly statusHistoryRepo: Repository<TicketStatusHistory>,
+    private readonly roundRobinService: RoundRobinAssignmentService,
   ) { }
 
   /**
@@ -148,6 +150,12 @@ export class TicketsService {
     manager?: EntityManager,
     telegramCustomerId?: string,
   ): Promise<Ticket> {
+    if (!manager) {
+      return this.ticketRepo.manager.transaction((transactionManager) =>
+        this.createFromWebForm(dto, transactionManager, telegramCustomerId),
+      );
+    }
+
     const userRepo = manager
       ? manager.getRepository(User)
       : this.userRepo;
@@ -279,6 +287,16 @@ export class TicketsService {
 
     await statusHistoryRepo.save(statusHistory);
 
+    try {
+      await this.roundRobinService.assignNextAgent(savedTicket.ticket_id, manager);
+    } catch (error) {
+      if (!(error instanceof ConflictException) ||
+          error.message !== 'Không có Agent đang hoạt động để phân công') {
+        throw error;
+      }
+      this.logger.warn(`Ticket ${savedTicket.ticket_code} đang chờ Agent phù hợp`);
+    }
+
     this.logger.log(
       `Tạo Ticket thành công: ${savedTicket.ticket_code} - ${savedTicket.ticket_id}`,
     );
@@ -354,6 +372,20 @@ export class TicketsService {
         'ticket.is_urgent_bumped = :isBumped',
         { isBumped },
       );
+    }
+
+    if (query.assigned_agent_id) {
+      qb.andWhere(
+        'ticket.assigned_agent_id = :assigned_agent_id',
+        { assigned_agent_id: query.assigned_agent_id },
+      );
+    }
+
+    if (
+      query.unassigned === 'true' ||
+      query.unassigned === '1'
+    ) {
+      qb.andWhere('ticket.assigned_agent_id IS NULL');
     }
 
     if (query.search) {
@@ -517,5 +549,71 @@ export class TicketsService {
     }
 
     return ticket;
+  }
+  async getActiveAgents() {
+    const agents = await this.userRepo.createQueryBuilder('agent')
+      .innerJoin('agent.role', 'role')
+      .where('LOWER(role.role_name) = :role', { role: 'agent' })
+      .andWhere('LOWER(agent.status) = :status', { status: 'active' })
+      .orderBy('agent.full_name', 'ASC')
+      .getMany();
+    return agents.map(({ user_id, full_name, email, team_id }) => ({
+      user_id, full_name, email, team_id,
+    }));
+  }
+
+  async assignTicketRoundRobin(ticketId: string): Promise<Ticket> {
+    const ticket = await this.roundRobinService.assignNextAgent(ticketId);
+    return this.findById(ticket.ticket_id);
+  }
+
+  async assignTicket(ticketId: string, agentId: string): Promise<Ticket> {
+    return this.ticketRepo.manager.transaction(async (manager) => {
+      const ticketRepo = manager.getRepository(Ticket);
+      const userRepo = manager.getRepository(User);
+
+      // Tìm Ticket thật trong PostgreSQL và khóa bản ghi
+      // để tránh hai yêu cầu phân công đồng thời ghi đè nhau.
+      const ticket = await ticketRepo
+        .createQueryBuilder('ticket')
+        .setLock('pessimistic_write')
+        .where('ticket.ticket_id::text = :id OR ticket.ticket_code = :id', {
+          id: ticketId,
+        })
+        .getOne();
+
+      if (!ticket) {
+        throw new NotFoundException('Không tìm thấy Ticket');
+      }
+
+      // Kiểm tra Agent tồn tại, có vai trò Agent và đang hoạt động.
+      const agent = await userRepo
+        .createQueryBuilder('user')
+        .innerJoin('user.role', 'role')
+        .where('user.user_id = :agentId', { agentId })
+        .andWhere('LOWER(role.role_name) = :roleName', {
+          roleName: 'agent',
+        })
+        .andWhere('LOWER(user.status) = :status', {
+          status: 'active',
+        })
+        .getOne();
+
+      if (!agent) {
+        throw new BadRequestException(
+          'Agent không tồn tại, không có vai trò Agent hoặc không hoạt động',
+        );
+      }
+
+      ticket.assigned_agent_id = agent.user_id;
+
+      await ticketRepo.save(ticket);
+
+      this.logger.log(
+        `Đã phân công Ticket ${ticket.ticket_code} cho Agent ${agent.user_id}`,
+      );
+
+      return this.findById(ticket.ticket_id, manager);
+    });
   }
 }

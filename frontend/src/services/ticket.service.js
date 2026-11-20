@@ -91,6 +91,53 @@ export const ticketService = {
         const response = await api.get(`/tickets/${encodeURIComponent(id)}`);
         return response.data || response;
     },
+
+    /**
+     * Cập nhật trạng thái và/hoặc mức độ ưu tiên của vé hỗ trợ (Task 4.1 - Phú)
+     * Endpoint: PATCH /api/v1/tickets/:id
+     * @param {string} id Mã vé (TK-1082) hoặc UUID
+     * @param {{ status?: string, priority?: string }} payload
+     */
+    async updateTicket(id, payload = {}) {
+        if (!id) throw new Error('Mã vé không được để trống');
+        const body = {};
+        if (payload.status !== undefined) body.status = payload.status;
+        if (payload.priority !== undefined) body.priority = payload.priority;
+        const response = await api.patch(`/tickets/${encodeURIComponent(id)}`, body);
+        return response.data || response;
+    },
+
+    /**
+     * Phân công Ticket thủ công cho Agent (Task 4.2 / 4.7 - Lộc)
+     * Endpoint: PATCH /api/v1/tickets/:id/assign
+     * @param {string} ticketId Mã vé hoặc UUID
+     * @param {string} agentId UUID của Agent
+     */
+    async assignTicket(ticketId, agentId) {
+        if (!ticketId || !agentId) {
+            throw new Error('Vui lòng chọn Ticket và Agent');
+        }
+        const response = await api.patch(
+            `/tickets/${encodeURIComponent(ticketId)}/assign`,
+            { agent_id: agentId },
+        );
+        return response.data || response;
+    },
+
+    /**
+     * Lấy danh sách Agent đang hoạt động (Task 4.7 - Lộc)
+     * Endpoint: GET /api/v1/tickets/agents
+     */
+    async assignTicketAuto(ticketId) {
+        if (!ticketId) throw new Error('Vui lòng chọn Ticket');
+        const response = await api.post(`/tickets/${encodeURIComponent(ticketId)}/assign-round-robin`, {});
+        return response.data || response;
+    },
+
+    async getActiveAgents() {
+        const response = await api.get('/tickets/agents');
+        return response?.data?.data ?? response?.data ?? [];
+    },
 };
 
 export default ticketService;
@@ -101,15 +148,24 @@ export function watchTickets(params, onUpdate, onError) {
     let disposed = false;
     let timer;
     const controller = new AbortController();
+    const cleanParams = Object.fromEntries(
+        Object.entries(params || {}).filter(([, v]) => v !== undefined && v !== null && v !== ''),
+    );
     const refresh = async () => {
         try {
-            const response = await ticketService.getTickets(params, { signal: controller.signal });
+            const response = await ticketService.getTickets(cleanParams, { signal: controller.signal });
             const items = response?.data?.data || response?.data?.items ||
                 response?.data || response?.items;
             if (!Array.isArray(items)) throw new Error('INVALID_TICKET_RESPONSE');
-            if (!disposed) onUpdate(items);
+            const meta = {
+                total: Number(response?.total ?? response?.data?.total ?? items.length),
+                page: Number(response?.page ?? response?.data?.page ?? cleanParams.page ?? 1),
+                limit: Number(response?.limit ?? response?.data?.limit ?? cleanParams.limit ?? (items.length || 10)),
+                totalPages: Number(response?.totalPages ?? response?.data?.totalPages ?? 1),
+            };
+            if (!disposed) onUpdate(items, meta);
         } catch {
-            if (!disposed) onError();
+            if (!disposed) onError?.();
         } finally {
             if (!disposed) timer = setTimeout(refresh, 5000);
         }

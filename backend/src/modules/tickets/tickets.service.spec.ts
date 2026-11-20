@@ -42,6 +42,7 @@ function setup(found = true) {
         {} as never,
         {} as never,
         {} as never,
+        {} as never,
     );
 
     vi.spyOn(service, 'findById').mockResolvedValue(ticket as Ticket);

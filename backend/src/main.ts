@@ -2,8 +2,18 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import pg from 'pg';
 import { AppModule } from './app.module.js';
 import type { NestExpressApplication } from '@nestjs/platform-express';
+
+// Thiết lập TypeParser cho PostgreSQL TIMESTAMP WITHOUT TIME ZONE (OID 1114)
+// PostgreSQL lưu timestamp dạng UTC từ CURRENT_TIMESTAMP. Parser này đảm bảo Node.js
+// parse đúng dạng UTC Date thay vì ngầm định sang múi giờ local (UTC+7), khắc phục
+// triệt để lỗi thời gian tạo vé bị lệch 7 tiếng.
+pg.types.setTypeParser(1114, (stringValue: string) => {
+  const isoStr = stringValue.includes('T') ? stringValue : stringValue.replace(' ', 'T');
+  return new Date(isoStr.endsWith('Z') ? isoStr : `${isoStr}Z`);
+});
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');

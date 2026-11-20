@@ -11,6 +11,7 @@ import {
 import { TicketsService } from './tickets.service.js';
 import { TicketsController } from './tickets.controller.js';
 import { AuthModule } from '../auth/auth.module.js';
+import { RoundRobinAssignmentService } from './round-robin-assignment.service.js';
 
 @Module({
     imports: [
@@ -25,7 +26,7 @@ import { AuthModule } from '../auth/auth.module.js';
         ]),
     ],
     controllers: [TicketsController],
-    providers: [TicketsService],
-    exports: [TicketsService],
+    providers: [TicketsService, RoundRobinAssignmentService],
+    exports: [TicketsService, RoundRobinAssignmentService],
 })
 export class TicketsModule { }

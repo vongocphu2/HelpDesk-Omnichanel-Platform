@@ -47,6 +47,45 @@ function setup() {
 }
 
 describe('AuthService', () => {
+    it.each([
+        ['ADMIN', 'admin'],
+        ['MANAGER', 'manager'],
+        ['AGENT', 'agent'],
+        ['Admin', 'admin'],
+    ])('accepts database role %s and returns canonical role %s', async (storedRole, expectedRole) => {
+        const { service, user } = setup();
+        user.role.role_name = storedRole;
+
+        const result = await service.login({ email: user.email, password });
+
+        expect(result.user.role).toBe(expectedRole);
+        const currentUser = await service.authenticate(result.access_token);
+        expect(currentUser.role).toBe(expectedRole);
+    });
+
+    it.each(['CUSTOMER', 'owner', ''])('rejects unsupported database role %s', async (storedRole) => {
+        const { service, user } = setup();
+        const result = await service.login({ email: user.email, password });
+        user.role.role_name = storedRole;
+
+        await expect(service.login({ email: user.email, password }))
+            .rejects.toBeInstanceOf(UnauthorizedException);
+        await expect(service.authenticate(result.access_token))
+            .rejects.toBeInstanceOf(UnauthorizedException);
+    });
+
+    it('still rejects wrong passwords and locked accounts with uppercase roles', async () => {
+        const { service, user } = setup();
+        user.role.role_name = 'ADMIN';
+
+        await expect(service.login({ email: user.email, password: 'WrongPassword' }))
+            .rejects.toBeInstanceOf(UnauthorizedException);
+
+        user.status = 'inactive';
+        await expect(service.login({ email: user.email, password }))
+            .rejects.toBeInstanceOf(UnauthorizedException);
+    });
+
     it('logs in and verifies the issued token without exposing the hash', async () => {
         const { service } = setup();
 

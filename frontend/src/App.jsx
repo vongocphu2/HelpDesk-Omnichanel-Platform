@@ -1,8 +1,15 @@
-import { getTicketTriage, getTicketStatus } from "./services/ticket-triage.js";
+import {
+  getTicketTriage,
+  getTicketStatus,
+  getTicketPriorityLabel,
+  normalizeTicketStatus,
+  normalizeTicketPriority,
+} from "./services/ticket-triage.js";
 import { ticketService, watchTickets } from "./services/ticket.service.js";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import SettingsPage from "./SettingsPage.jsx";
+import AssignTicketModal from "./AssignTicketModal.jsx";
 import CustomerPortal from "./pages/CustomerPortal.jsx";
 import api from "./services/api.js";
 import {
@@ -58,10 +65,10 @@ const navigation = [
 ];
 
 const teamMembers = [
-  { name: "Võ Ngọc Phú", initials: "NP", color: "mint" },
-  { name: "Võ Thị Thu Lộc", initials: "TL", color: "peach" },
-  { name: "Võ Hồng Phúc", initials: "HP", color: "lilac" },
-  { name: "Trương Đình Thảo Đoan", initials: "TĐ", color: "blue" },
+  { name: "Võ Ngọc Phú", email: "admin@example.com", role: "admin", roleLabel: "Quản trị viên", initials: "NP", color: "mint" },
+  { name: "Võ Thị Thu Lộc", email: "manager@example.com", role: "manager", roleLabel: "Quản lý CSKH", initials: "TL", color: "peach" },
+  { name: "Võ Hồng Phúc", email: "agent@example.com", role: "agent", roleLabel: "Nhân viên CSKH", initials: "HP", color: "lilac" },
+  { name: "Trương Đình Thảo Đoan", email: "thaodoan29082005@gmail.com", role: "agent", roleLabel: "Nhân viên CSKH", initials: "TĐ", color: "blue" },
 ];
 
 const ticketManagementSamples = [];
@@ -124,9 +131,54 @@ const initialConversations = [];
 function getTeamMember(identity) {
   return (
     teamMembers.find(
-      (member) => member.name === identity || member.initials === identity,
+      (member) =>
+        member.name === identity ||
+        member.initials === identity ||
+        member.email === identity,
     ) ?? teamMembers[0]
   );
+}
+
+function getUserDisplay(user) {
+  const roleKey = String(user?.role || "admin").toLowerCase();
+  const roleLabel =
+    roleKey === "admin"
+      ? "Quản trị viên"
+      : roleKey === "manager"
+        ? "Quản lý CSKH"
+        : "Nhân viên CSKH";
+  const matchedByEmail = user?.email
+    ? teamMembers.find((m) => m.email.toLowerCase() === String(user.email).toLowerCase())
+    : null;
+  const matchedByRole = teamMembers.find((m) => m.role === roleKey);
+  const rawName = user?.full_name || user?.name || "";
+  const isGenericSeedName = /^sprint\s*4\s*test/i.test(rawName);
+  const name =
+    (!isGenericSeedName && rawName) ||
+    matchedByEmail?.name ||
+    matchedByRole?.name ||
+    "Võ Ngọc Phú";
+  const member =
+    teamMembers.find((m) => m.name === name) ||
+    matchedByEmail ||
+    matchedByRole ||
+    teamMembers[0];
+  const initials =
+    name
+      .trim()
+      .split(/\s+/)
+      .map((w) => w[0])
+      .slice(-2)
+      .join("")
+      .toUpperCase() || member.initials;
+  return {
+    name,
+    email: user?.email || member.email,
+    roleKey,
+    roleLabel,
+    initials,
+    color: member.color || "mint",
+  };
 }
 
 function ChannelIcon({ channel, size = 14 }) {
@@ -135,10 +187,22 @@ function ChannelIcon({ channel, size = 14 }) {
   return <Icon size={size} aria-hidden="true" />;
 }
 
+function parseDate(dateInput) {
+  if (!dateInput) return null;
+  if (dateInput instanceof Date) return isNaN(dateInput.getTime()) ? null : dateInput;
+  let str = String(dateInput).trim();
+  if (!str) return null;
+  // Chuẩn hóa chuỗi ngày giờ từ server nếu thiếu hậu tố Z (múi giờ UTC)
+  if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}/.test(str) && !str.endsWith("Z") && !/[+-]\d{2}:?\d{2}$/.test(str)) {
+    str = str.replace(" ", "T") + "Z";
+  }
+  const d = new Date(str);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 function formatRelativeTime(dateInput) {
-  if (!dateInput) return "Vừa xong";
-  const d = new Date(dateInput);
-  if (isNaN(d.getTime())) return "Vừa xong";
+  const d = parseDate(dateInput);
+  if (!d) return "Vừa xong";
   const diffMs = Date.now() - d.getTime();
   if (diffMs < 0) return "Vừa xong";
   const diffSec = Math.floor(diffMs / 1000);
@@ -152,17 +216,16 @@ function formatRelativeTime(dateInput) {
 }
 
 function formatClockTime(dateInput) {
-  if (!dateInput) {
+  const d = parseDate(dateInput);
+  if (!d) {
     const now = new Date();
     return now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
   }
-  const d = new Date(dateInput);
-  if (isNaN(d.getTime())) return "Vừa xong";
   return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
 }
 
 function formatDateHeader(dateInput) {
-  const d = dateInput ? new Date(dateInput) : new Date();
+  const d = parseDate(dateInput) || new Date();
   const timeStr = formatClockTime(d);
   const now = new Date();
   const isToday = d.toDateString() === now.toDateString();
@@ -174,9 +237,8 @@ function formatDateHeader(dateInput) {
 }
 
 function calculateSla(dateInput, isUrgent) {
-  if (!dateInput) return { sla: isUrgent ? "Còn 30 phút" : "Còn 2 giờ", slaPercent: 80 };
-  const d = new Date(dateInput);
-  if (isNaN(d.getTime())) return { sla: isUrgent ? "Còn 30 phút" : "Còn 2 giờ", slaPercent: 80 };
+  const d = parseDate(dateInput);
+  if (!d) return { sla: isUrgent ? "Còn 30 phút" : "Còn 2 giờ", slaPercent: 80 };
   const totalMinutes = isUrgent ? 30 : 120;
   const elapsedMinutes = Math.max(0, Math.floor((Date.now() - d.getTime()) / 60000));
   const remainingMinutes = totalMinutes - elapsedMinutes;
@@ -194,7 +256,32 @@ function calculateSla(dateInput, isUrgent) {
 
 const unifiedTickets = [];
 
-const currentAgent = "Võ Ngọc Phú";
+function sortTicketsUrgentFirst(a, b) {
+  const bumpDiff = Number(Boolean(b.isAiBumped)) - Number(Boolean(a.isAiBumped));
+  if (bumpDiff !== 0) return bumpDiff;
+  const timeA = parseDate(a.created_at)?.getTime() || 0;
+  const timeB = parseDate(b.created_at)?.getTime() || 0;
+  return timeB - timeA;
+}
+
+function isTicketAssignedToUser(ticket, currentUser, fallbackName) {
+  if (!ticket) return false;
+  if (currentUser?.user_id && ticket.assigneeId) {
+    return (
+      String(ticket.assigneeId).toLowerCase() ===
+      String(currentUser.user_id).toLowerCase()
+    );
+  }
+  if (currentUser?.email && ticket.assigneeEmail) {
+    return (
+      String(ticket.assigneeEmail).toLowerCase() ===
+      String(currentUser.email).toLowerCase()
+    );
+  }
+  if (!ticket.assignee || ticket.assignee === "Chưa phân công") return false;
+  const targetName = currentUser?.full_name || fallbackName || "";
+  return Boolean(targetName && ticket.assignee === targetName);
+}
 
 function TicketFeedStatus({ state }) {
   if (state === "ready") return null;
@@ -225,14 +312,26 @@ function TriageDetails({ ticket }) {
   </section>;
 }
 
-function InboxScreen({ initialQuery = "" }) {
+function InboxScreen({ initialQuery = "", currentUser }) {
+  const userDisplay = getUserDisplay(currentUser);
+  const currentAgent = userDisplay.name;
+  const canAssign =
+    userDisplay.roleKey === "admin" || userDisplay.roleKey === "manager";
   const [feedState, setFeedState] = useState("loading");
   const [ticketList, setTicketList] = useState([]);
+  const [serverTotal, setServerTotal] = useState(0);
+  const [serverTotalPages, setServerTotalPages] = useState(1);
+  const [page, setPage] = useState(1);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [query, setQuery] = useState(initialQuery);
   const [activeFilter, setActiveFilter] = useState("Tất cả");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [priorityFilter, setPriorityFilter] = useState("ALL");
+  const [sentimentFilter, setSentimentFilter] = useState("ALL");
   const [selectedTicketId, setSelectedTicketId] = useState(null);
-  const [assignedTickets, setAssignedTickets] = useState({});
-  const [ticketStatuses, setTicketStatuses] = useState({});
+  const [assignmentTicket, setAssignmentTicket] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionFeedback, setActionFeedback] = useState(null);
   const [repliesByTicket, setRepliesByTicket] = useState({});
   const [draft, setDraft] = useState("");
   const [aiDraftOpen, setAiDraftOpen] = useState(true);
@@ -246,111 +345,197 @@ function InboxScreen({ initialQuery = "" }) {
     }
   }, [selectedTicketId, repliesByTicket]);
 
-  useEffect(() => setQuery(initialQuery), [initialQuery]);
+  useEffect(() => {
+    setQuery(initialQuery);
+    setPage(1);
+  }, [initialQuery]);
 
-  useEffect(() => watchTickets(
-    { limit: 50 },
-    (items) => {
-            const mapped = items.map((rt) => {
-              const custName =
-                rt.customer?.full_name ||
-                rt.customer_name ||
-                rt.customer?.name ||
-                "Khách hàng";
-              const rawInitials = custName
-                ? custName
-                    .trim()
-                    .split(/\s+/)
-                    .map((w) => w[0])
-                    .slice(-2)
-                    .join("")
-                    .toUpperCase()
-                : "KH";
-              const firstMsg =
-                rt.description ||
-                rt.messages?.[0]?.content ||
-                rt.messages?.[rt.messages.length - 1]?.content ||
-                "";
-              const attachment =
-                rt.messages?.[0]?.attachments ||
-                rt.messages?.find((m) => m.attachments)?.attachments ||
-                rt.attachment_url ||
-                null;
-              return {
-                ...getTicketTriage(rt),
-                id: rt.ticket_code || rt.id || `#TK-${String(rt.id).slice(0, 4)}`,
-                customer: custName,
-                initials: rawInitials || "KH",
-                email: rt.customer?.email || rt.customer_email || "customer@example.com",
-                phone: rt.customer?.phone || rt.customer_phone || "+84 900 000 000",
-                company: rt.customer?.company || "Khách hàng cá nhân",
-                plan: rt.customer?.plan || "Gói tiêu chuẩn",
-                subject: rt.subject || "Yêu cầu hỗ trợ",
-                channel:
-                  rt.channel?.channel_type === "telegram" || rt.channel_type === "telegram"
-                    ? "Telegram"
-                    : rt.channel?.channel_type === "email" || rt.channel_type === "email"
-                      ? "Email"
-                      : "Web Form",
-                channelTone:
-                  rt.channel?.channel_type === "telegram" || rt.channel_type === "telegram"
-                    ? "indigo"
-                    : rt.channel?.channel_type === "email" || rt.channel_type === "email"
-                      ? "sky"
-                      : "teal",
-                priority: rt.is_urgent_bumped
-                  ? "🔥 AI Urgent (Priority Bump)"
-                  : rt.priority === "urgent"
-                    ? "Khẩn cấp"
-                    : rt.priority === "high"
-                      ? "High"
-                      : "Normal",
-                priorityTone:
-                  rt.is_urgent_bumped || rt.priority === "urgent"
-                    ? "urgent"
-                    : rt.priority === "high"
-                      ? "high"
-                      : "normal",
-                assignee: rt.assigned_agent?.full_name || rt.assignee?.name || rt.assignee_name || "",
-                status: getTicketStatus(rt.status),
-                created_at: rt.created_at || new Date().toISOString(),
-                time: formatRelativeTime(rt.created_at),
-                sla: calculateSla(rt.created_at, rt.is_urgent_bumped || rt.priority === "urgent").sla,
-                slaPercent: calculateSla(rt.created_at, rt.is_urgent_bumped || rt.priority === "urgent").slaPercent,
-                preview: firstMsg ? (firstMsg.slice(0, 75) + "...") : (rt.subject || "Yêu cầu hỗ trợ"),
-                message: firstMsg || rt.subject || "Khách hàng không để lại nội dung chi tiết.",
-                attachment,
-                draftReply:
-                  rt.ai_draft_reply ||
-                  "Chào bạn, cảm ơn bạn đã gửi yêu cầu. Chúng tôi đang xử lý và sẽ phản hồi sớm nhất có thể.",
-              };
-            });
-setTicketList(mapped);
-setFeedState("ready");
-}, () => setFeedState("error"),
-), []);
+  const effectivePriorityParam =
+    priorityFilter !== "ALL" && priorityFilter !== "AI_BUMP"
+      ? priorityFilter
+      : activeFilter === "Khẩn cấp" && priorityFilter === "ALL"
+        ? "urgent"
+        : undefined;
+  const effectiveBumpedParam =
+    priorityFilter === "AI_BUMP" ? "true" : undefined;
+  const effectiveStatusParam =
+    statusFilter !== "ALL" ? statusFilter : undefined;
+  const effectiveSentimentParam =
+    sentimentFilter !== "ALL" ? sentimentFilter : undefined;
+  const effectiveSearchParam = query.trim() || undefined;
+  const effectiveAssignedAgentId =
+    activeFilter === "Của tôi" && currentUser?.user_id
+      ? currentUser.user_id
+      : undefined;
+  const effectiveUnassigned =
+    activeFilter === "Chưa phân công" ? "true" : undefined;
+
+  useEffect(
+    () =>
+      watchTickets(
+        {
+          page,
+          limit: 20,
+          status: effectiveStatusParam,
+          priority: effectivePriorityParam,
+          is_urgent_bumped: effectiveBumpedParam,
+          sentiment_label: effectiveSentimentParam,
+          search: effectiveSearchParam,
+          assigned_agent_id: effectiveAssignedAgentId,
+          unassigned: effectiveUnassigned,
+        },
+        (items, meta) => {
+          const mapped = items.map((rt) => {
+            const custName =
+              rt.customer?.full_name ||
+              rt.customer_name ||
+              rt.customer?.name ||
+              "Khách hàng";
+            const rawInitials = custName
+              ? custName
+                  .trim()
+                  .split(/\s+/)
+                  .map((w) => w[0])
+                  .slice(-2)
+                  .join("")
+                  .toUpperCase()
+              : "KH";
+            const firstMsg =
+              rt.description ||
+              rt.messages?.[0]?.content ||
+              rt.messages?.[rt.messages.length - 1]?.content ||
+              "";
+            const attachment =
+              rt.messages?.[0]?.attachments ||
+              rt.messages?.find((m) => m.attachments)?.attachments ||
+              rt.attachment_url ||
+              null;
+            const apiStatus = normalizeTicketStatus(rt.status);
+            const apiPriority = normalizeTicketPriority(rt.priority);
+            const isUrgent =
+              Boolean(rt.is_urgent_bumped) || apiPriority === "urgent";
+            return {
+              ...getTicketTriage(rt),
+              id:
+                rt.ticket_code ||
+                rt.id ||
+                `#TK-${String(rt.id).slice(0, 4)}`,
+              ticketUuid: rt.ticket_id || rt.id || "",
+              customer: custName,
+              initials: rawInitials || "KH",
+              email:
+                rt.customer?.email ||
+                rt.customer_email ||
+                "customer@example.com",
+              phone:
+                rt.customer?.phone ||
+                rt.customer_phone ||
+                "+84 900 000 000",
+              company: rt.customer?.company || "Khách hàng cá nhân",
+              plan: rt.customer?.plan || "Gói tiêu chuẩn",
+              subject: rt.subject || "Yêu cầu hỗ trợ",
+              channel:
+                rt.channel?.channel_type === "telegram" ||
+                rt.channel_type === "telegram"
+                  ? "Telegram"
+                  : rt.channel?.channel_type === "email" ||
+                      rt.channel_type === "email"
+                    ? "Email"
+                    : "Web Form",
+              channelTone:
+                rt.channel?.channel_type === "telegram" ||
+                rt.channel_type === "telegram"
+                  ? "indigo"
+                  : rt.channel?.channel_type === "email" ||
+                      rt.channel_type === "email"
+                    ? "sky"
+                    : "teal",
+              priority: apiPriority,
+              priorityLabel: getTicketPriorityLabel(
+                apiPriority,
+                Boolean(rt.is_urgent_bumped),
+              ),
+              priorityTone: isUrgent
+                ? "urgent"
+                : apiPriority === "high"
+                  ? "high"
+                  : "normal",
+              status: apiStatus,
+              assigneeId:
+                rt.assigned_agent_id || rt.assigned_agent?.user_id || "",
+              assigneeEmail: rt.assigned_agent?.email || "",
+              assignee:
+                rt.assigned_agent?.full_name ||
+                rt.assignee?.name ||
+                rt.assignee_name ||
+                "",
+              created_at: rt.created_at || new Date().toISOString(),
+              time: formatRelativeTime(rt.created_at),
+              sla: calculateSla(rt.created_at, isUrgent).sla,
+              slaPercent: calculateSla(rt.created_at, isUrgent).slaPercent,
+              preview: firstMsg
+                ? firstMsg.slice(0, 75) + "..."
+                : rt.subject || "Yêu cầu hỗ trợ",
+              message:
+                firstMsg ||
+                rt.subject ||
+                "Khách hàng không để lại nội dung chi tiết.",
+              attachment,
+              draftReply:
+                rt.ai_draft_reply ||
+                "Chào bạn, cảm ơn bạn đã gửi yêu cầu. Chúng tôi đang xử lý và sẽ phản hồi sớm nhất có thể.",
+            };
+          });
+          setTicketList(mapped.sort(sortTicketsUrgentFirst));
+          setServerTotal(meta?.total ?? mapped.length);
+          setServerTotalPages(Math.max(1, meta?.totalPages ?? 1));
+          setFeedState("ready");
+        },
+        () => setFeedState("error"),
+      ),
+    [
+      page,
+      effectiveStatusParam,
+      effectivePriorityParam,
+      effectiveBumpedParam,
+      effectiveSentimentParam,
+      effectiveSearchParam,
+      effectiveAssignedAgentId,
+      effectiveUnassigned,
+      refreshKey,
+    ],
+  );
 
   const selectedTicket = ticketList.find((t) => t.id === selectedTicketId);
-  const selectedStatus = selectedTicket
-    ? ticketStatuses[selectedTicket.id] ?? selectedTicket.status
-    : "OPEN";
+  const selectedStatus = selectedTicket ? selectedTicket.status : "open";
 
-  const visibleTickets = ticketList.filter((ticket) => {
-    const assignedTo = assignedTickets[ticket.id] ?? ticket.assignee;
-    const matchesQuery =
-      `${ticket.id} ${ticket.customer} ${ticket.subject} ${ticket.channel}`
-        .toLowerCase()
-        .includes(query.toLowerCase());
-    const matchesFilter =
-      activeFilter === "Khẩn cấp"
-        ? ticket.priorityTone === "urgent"
-        : activeFilter === "Chưa phân công"
-          ? !assignedTo
-          : activeFilter === "Của tôi"
-            ? assignedTo === currentAgent
-            : true;
-    return matchesQuery && matchesFilter;
-  });
+  const visibleTickets = ticketList
+    .filter((ticket) => {
+      const matchesFilter =
+        activeFilter === "Khẩn cấp"
+          ? ticket.priorityTone === "urgent"
+          : activeFilter === "Chưa phân công"
+            ? !ticket.assignee && !ticket.assigneeId
+            : activeFilter === "Của tôi"
+              ? isTicketAssignedToUser(ticket, currentUser, currentAgent)
+              : true;
+      const matchesStatus =
+        statusFilter === "ALL" || ticket.status === statusFilter;
+      const matchesPriority =
+        priorityFilter === "ALL"
+          ? true
+          : priorityFilter === "AI_BUMP"
+            ? Boolean(ticket.isAiBumped)
+            : priorityFilter === "urgent"
+              ? ticket.priorityTone === "urgent" || ticket.priority === "urgent"
+              : ticket.priority === priorityFilter;
+      const matchesSentiment =
+        sentimentFilter === "ALL" || ticket.sentiment === sentimentFilter;
+      return (
+        matchesFilter && matchesStatus && matchesPriority && matchesSentiment
+      );
+    })
+    .sort(sortTicketsUrgentFirst);
 
   const sendReply = (event) => {
     event.preventDefault();
@@ -363,24 +548,65 @@ setFeedState("ready");
     setAttachmentName("");
   };
 
-  const assignToMe = () => {
-    if (!selectedTicket) return;
-    setAssignedTickets((current) => ({
-      ...current,
-      [selectedTicket.id]: currentAgent,
-    }));
+  const handleStatusUpdate = async (nextStatus) => {
+    if (!selectedTicket || actionLoading) return;
+    const normalized = normalizeTicketStatus(nextStatus);
+    setActionLoading(true);
+    setActionFeedback(null);
+    try {
+      const updated = await ticketService.updateTicket(selectedTicket.id, {
+        status: normalized,
+      });
+      const savedStatus = normalizeTicketStatus(
+        updated?.status || updated?.data?.status || normalized,
+      );
+      setTicketList((current) =>
+        current.map((item) =>
+          item.id === selectedTicket.id
+            ? { ...item, status: savedStatus }
+            : item,
+        ),
+      );
+      setRefreshKey((k) => k + 1);
+      setActionFeedback({
+        type: "success",
+        text: `Đã lưu trạng thái "${getTicketStatus(savedStatus)}" vào CSDL.`,
+      });
+    } catch (error) {
+      const msg =
+        error.response?.data?.message ||
+        error.message ||
+        "Không thể cập nhật trạng thái ticket.";
+      setActionFeedback({
+        type: "error",
+        text: Array.isArray(msg) ? msg.join(". ") : msg,
+      });
+    } finally {
+      setActionLoading(false);
+    }
   };
 
-  const handleAssignChange = (newAssignee) => {
+  const handleToggleStatus = () => {
     if (!selectedTicket) return;
-    setAssignedTickets((current) => ({
-      ...current,
-      [selectedTicket.id]: newAssignee,
-    }));
+    const nextStatus = selectedStatus === "closed" ? "open" : "closed";
+    void handleStatusUpdate(nextStatus);
+  };
+
+  const assignmentSaved = (updated) => {
+    setTicketList(current => current.map(ticket => ticket.id === assignmentTicket.id ? {
+      ...ticket,
+      assigneeId: updated.assigned_agent_id,
+      assignee: updated.assigned_agent?.full_name || '',
+      assigneeEmail: updated.assigned_agent?.email || '',
+    } : ticket));
+    setRefreshKey(key => key + 1);
+    setActionFeedback({ type: 'success', text: 'Đã lưu phân công ticket.' });
   };
 
   return (
     <section className="unified-inbox">
+      {assignmentTicket && canAssign && <AssignTicketModal key={assignmentTicket.id} ticket={assignmentTicket}
+        onClose={() => setAssignmentTicket(null)} onAssigned={assignmentSaved} />}
       {!selectedTicket ? (
         <div className="unified-queue">
           <div className="unified-queue-heading">
@@ -390,44 +616,31 @@ setFeedState("ready");
               <p>Ưu tiên những cuộc hội thoại cần được xử lý ngay.</p>
             </div>
             <div className="queue-live-status">
-              <i /> Live queue <span>{ticketList.length} tickets</span>
+              <i /> Live queue <span>{serverTotal} tickets</span>
             </div>
           </div>
           <div className="unified-queue-toolbar">
-            <div className="unified-filter-tabs" role="tablist" aria-label="Lọc hàng đợi">
-              {[
-                ["Tất cả", String(ticketList.length)],
-                [
-                  "Khẩn cấp",
-                  String(ticketList.filter((t) => t.priorityTone === "urgent").length),
-                ],
-                [
-                  "Chưa phân công",
-                  String(
-                    ticketList.filter(
-                      (t) => !(assignedTickets[t.id] ?? t.assignee),
-                    ).length,
-                  ),
-                ],
-                [
-                  "Của tôi",
-                  String(
-                    ticketList.filter(
-                      (t) => (assignedTickets[t.id] ?? t.assignee) === currentAgent,
-                    ).length,
-                  ),
-                ],
-              ].map(([label, count]) => (
+            <div
+              className="unified-filter-tabs"
+              role="tablist"
+              aria-label="Lọc hàng đợi"
+            >
+              {["Tất cả", "Khẩn cấp", "Chưa phân công", "Của tôi"].map(label => (
                 <button
                   type="button"
                   role="tab"
                   aria-selected={activeFilter === label}
-                  className={activeFilter === label ? "unified-filter-active" : ""}
+                  className={
+                    activeFilter === label ? "unified-filter-active" : ""
+                  }
                   key={label}
-                  onClick={() => setActiveFilter(label)}
+                  onClick={() => {
+                    setActiveFilter(label);
+                    setPage(1);
+                  }}
                 >
                   {label === "Khẩn cấp" && <span aria-hidden="true">🔥 </span>}
-                  {label} <span className="unified-filter-count">{count}</span>
+                  {label} {activeFilter === label && <span className="unified-filter-count">{serverTotal}</span>}
                 </button>
               ))}
             </div>
@@ -437,25 +650,122 @@ setFeedState("ready");
                 aria-label="Tìm trong hàng đợi"
                 placeholder="Tìm vé, khách hàng..."
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setPage(1);
+                }}
               />
             </label>
           </div>
+          <div
+            className="advanced-filter-bar inbox-advanced-filter"
+            aria-label="Bộ lọc hàng đợi nâng cao"
+          >
+            <select
+              aria-label="Lọc trạng thái"
+              value={statusFilter}
+              onChange={(event) => {
+                setStatusFilter(event.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="ALL">Trạng thái: Tất cả</option>
+              <option value="new">Mới (New)</option>
+              <option value="open">Đang mở (Open)</option>
+              <option value="pending">Đang chờ (Pending)</option>
+              <option value="resolved">Đã giải quyết (Resolved)</option>
+              <option value="closed">Đã đóng (Closed)</option>
+            </select>
+            <select
+              aria-label="Lọc độ ưu tiên"
+              value={priorityFilter}
+              onChange={(event) => {
+                setPriorityFilter(event.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="ALL">Ưu tiên: Tất cả</option>
+              <option value="AI_BUMP">🔥 AI Urgent Bump</option>
+              <option value="urgent">Khẩn cấp (Urgent)</option>
+              <option value="high">Cao (High)</option>
+              <option value="medium">Trung bình (Normal)</option>
+              <option value="low">Thấp (Low)</option>
+            </select>
+            <select
+              aria-label="Lọc cảm xúc AI"
+              value={sentimentFilter}
+              onChange={(event) => {
+                setSentimentFilter(event.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="ALL">Cảm xúc AI: Tất cả</option>
+              <option value="frustrated">😡 Bực bội / Tiêu cực</option>
+              <option value="neutral">😐 Trung tính</option>
+              <option value="positive">😊 Hài lòng / Tích cực</option>
+            </select>
+          </div>
+          {(statusFilter !== "ALL" ||
+            priorityFilter !== "ALL" ||
+            sentimentFilter !== "ALL") && (
+            <div className="active-filter-row inbox-active-filter-row">
+              {statusFilter !== "ALL" && (
+                <span className="active-filter-pill">
+                  Trạng thái: {getTicketStatus(statusFilter)}
+                </span>
+              )}
+              {priorityFilter !== "ALL" && (
+                <span className="active-filter-pill">
+                  Ưu tiên:{" "}
+                  {priorityFilter === "AI_BUMP"
+                    ? "🔥 AI Urgent Bump"
+                    : getTicketPriorityLabel(priorityFilter, false)}
+                </span>
+              )}
+              {sentimentFilter !== "ALL" && (
+                <span className="active-filter-pill">
+                  Cảm xúc:{" "}
+                  {sentimentFilter === "frustrated"
+                    ? "Bực bội"
+                    : sentimentFilter === "positive"
+                      ? "Hài lòng"
+                      : "Trung tính"}
+                </span>
+              )}
+              <span className="active-filter-count">
+                {serverTotal} ticket khớp
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setStatusFilter("ALL");
+                  setPriorityFilter("ALL");
+                  setSentimentFilter("ALL");
+                  setPage(1);
+                }}
+              >
+                <X size={13} /> Xóa tất cả bộ lọc
+              </button>
+            </div>
+          )}
           <TicketFeedStatus state={feedState} />
           <div className="unified-ticket-list">
             {visibleTickets.map((ticket) => {
-              const assignedPerson = assignedTickets[ticket.id] ?? ticket.assignee;
+              const assignedPerson = ticket.assignee;
               const member = getTeamMember(assignedPerson);
               return (
                 <button
                   type="button"
                   className={`unified-ticket-card ${
-                    ticket.priorityTone === "urgent" ? "unified-ticket-urgent" : ""
+                    ticket.priorityTone === "urgent"
+                      ? "unified-ticket-urgent"
+                      : ""
                   }`}
                   key={ticket.id}
                   onClick={() => {
                     setSelectedTicketId(ticket.id);
                     setAiDraftOpen(true);
+                    setActionFeedback(null);
                   }}
                 >
                   <span className="unified-ticket-topline">
@@ -478,17 +788,23 @@ setFeedState("ready");
                   <span className="unified-ticket-person">
                     <Avatar
                       initials={ticket.initials}
-                      color={ticket.priorityTone === "urgent" ? "peach" : "mint"}
+                      color={
+                        ticket.priorityTone === "urgent" ? "peach" : "mint"
+                      }
                     />
                     <strong>{ticket.customer}</strong>
                   </span>
-                  <span className="unified-ticket-subject">{ticket.subject}</span>
-                  <span className="unified-ticket-preview">{ticket.preview}</span>
+                  <span className="unified-ticket-subject">
+                    {ticket.subject}
+                  </span>
+                  <span className="unified-ticket-preview">
+                    {ticket.preview}
+                  </span>
                   <span className="unified-ticket-bottom">
                     <span
                       className={`unified-priority-badge priority-tone-${ticket.priorityTone}`}
                     >
-                      {ticket.priority}
+                      {ticket.priorityLabel}
                     </span>
                     <TriageBadge ticket={ticket} />
                     <span className="unified-ticket-assignee">
@@ -501,29 +817,87 @@ setFeedState("ready");
                     </span>
                     <span
                       className={`unified-ticket-status ${
-                        (ticketStatuses[ticket.id] ?? ticket.status) === "CLOSED"
-                          ? "is-closed"
-                          : ""
+                        ticket.status === "closed" ? "is-closed" : ""
                       }`}
                     >
-                      <i /> {ticketStatuses[ticket.id] ?? ticket.status}
+                      <i /> {getTicketStatus(ticket.status)}
                     </span>
                   </span>
                 </button>
               );
             })}
             {visibleTickets.length === 0 && (
-              <div className="unified-empty-state" style={{ padding: "3.5rem 1.5rem", textAlign: "center", color: "#6b7280" }}>
-                <Inbox size={42} style={{ margin: "0 auto 12px", opacity: 0.4, color: "#10b981" }} />
-                <h3 style={{ fontSize: "16px", fontWeight: "600", color: "#1f2937", marginBottom: "6px" }}>
+              <div
+                className="unified-empty-state"
+                style={{
+                  padding: "3.5rem 1.5rem",
+                  textAlign: "center",
+                  color: "#6b7280",
+                }}
+              >
+                <Inbox
+                  size={42}
+                  style={{
+                    margin: "0 auto 12px",
+                    opacity: 0.4,
+                    color: "#10b981",
+                  }}
+                />
+                <h3
+                  style={{
+                    fontSize: "16px",
+                    fontWeight: "600",
+                    color: "#1f2937",
+                    marginBottom: "6px",
+                  }}
+                >
                   Hàng đợi hiện đang trống
                 </h3>
-                <p style={{ fontSize: "13px", maxWidth: "420px", margin: "0 auto", lineHeight: "1.5" }}>
-                  Chưa có yêu cầu hỗ trợ nào trong hệ thống. Khi khách hàng gửi yêu cầu qua Web Portal, Email hoặc Telegram, vé mới sẽ tự động hiển thị tại đây.
+                <p
+                  style={{
+                    fontSize: "13px",
+                    maxWidth: "420px",
+                    margin: "0 auto",
+                    lineHeight: "1.5",
+                  }}
+                >
+                  Chưa có yêu cầu hỗ trợ nào khớp điều kiện. Khi khách hàng gửi
+                  yêu cầu qua Web Portal, Email hoặc Telegram, vé mới sẽ tự động
+                  hiển thị tại đây.
                 </p>
               </div>
             )}
           </div>
+          {serverTotalPages > 1 && (
+            <footer
+              className="ticket-pagination"
+              style={{ marginTop: "12px", padding: "10px 4px" }}
+            >
+              <span>
+                Trang {page} / {serverTotalPages} ({serverTotal} ticket)
+              </span>
+              <nav aria-label="Phân trang hộp thư">
+                <button
+                  type="button"
+                  className="pagination-arrow"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  <ChevronLeft size={15} /> Trước
+                </button>
+                <button
+                  type="button"
+                  className="pagination-arrow"
+                  disabled={page >= serverTotalPages}
+                  onClick={() =>
+                    setPage((p) => Math.min(serverTotalPages, p + 1))
+                  }
+                >
+                  Sau <ChevronRight size={15} />
+                </button>
+              </nav>
+            </footer>
+          )}
         </div>
       ) : (
         <div className="ticket-detail-view">
@@ -549,10 +923,10 @@ setFeedState("ready");
             <div className="ticket-detail-actions">
               <span
                 className={`detail-status-pill ${
-                  selectedStatus === "CLOSED" ? "detail-status-closed" : ""
+                  selectedStatus === "closed" ? "detail-status-closed" : ""
                 }`}
               >
-                <i /> {selectedStatus}
+                <i /> {getTicketStatus(selectedStatus)}
               </span>
               <span
                 className={`detail-priority-pill ${
@@ -566,32 +940,59 @@ setFeedState("ready");
                   ? "URGENT"
                   : selectedTicket.priority.toUpperCase()}
               </span>
-              <button
-                type="button"
-                className="detail-assign-button"
-                onClick={assignToMe}
+              {canAssign && (
+                <button
+                  type="button"
+                  className="detail-assign-button"
+                  disabled={actionLoading}
+                  onClick={() => setAssignmentTicket(selectedTicket)}
+                >
+                  <UserRound size={15} />{" "}
+                  Phân công Agent
+                </button>
+              )}
+              <select
+                aria-label="Đổi trạng thái ticket"
+                className="detail-status-button"
+                disabled={actionLoading}
+                value={selectedStatus}
+                onChange={(e) => void handleStatusUpdate(e.target.value)}
               >
-                <UserRound size={15} />{" "}
-                {assignedTickets[selectedTicket.id]
-                  ? "Đã phân công"
-                  : "Phân công cho tôi"}
-              </button>
+                <option value="new">{getTicketStatus("new")}</option>
+                <option value="open">{getTicketStatus("open")}</option>
+                <option value="pending">{getTicketStatus("pending")}</option>
+                <option value="resolved">{getTicketStatus("resolved")}</option>
+                <option value="closed">{getTicketStatus("closed")}</option>
+              </select>
               <button
                 type="button"
                 className="detail-status-button"
-                onClick={() =>
-                  setTicketStatuses((current) => ({
-                    ...current,
-                    [selectedTicket.id]:
-                      selectedStatus === "OPEN" ? "CLOSED" : "OPEN",
-                  }))
-                }
+                disabled={actionLoading}
+                onClick={handleToggleStatus}
               >
-                {selectedStatus === "OPEN" ? "Đổi trạng thái" : "Mở lại vé"}{" "}
-                <ChevronDown size={14} />
+                {selectedStatus === "closed" ? "Mở lại vé" : "Đóng vé"}
               </button>
             </div>
           </header>
+          {actionFeedback && (
+            <p
+              role={actionFeedback.type === "error" ? "alert" : "status"}
+              style={{
+                margin: "8px 20px 0",
+                padding: "8px 12px",
+                borderRadius: "8px",
+                fontSize: "13px",
+                background:
+                  actionFeedback.type === "error" ? "#fef2f2" : "#ecfdf5",
+                color: actionFeedback.type === "error" ? "#b91c1c" : "#047857",
+                border: `1px solid ${
+                  actionFeedback.type === "error" ? "#fecaca" : "#a7f3d0"
+                }`,
+              }}
+            >
+              {actionFeedback.text}
+            </p>
+          )}
 
           <div className="ticket-detail-content">
             {/* CỘT TRÁI: TIMELINE HỘI THOẠI & SOẠN THẢO */}
@@ -624,8 +1025,8 @@ setFeedState("ready");
                             <span>TỆP ĐÍNH KÈM TỪ KHÁCH HÀNG</span>
                           </div>
                           {selectedTicket.attachment.startsWith("data:image/") ||
-                          /\.(png|jpe?g|gif|webp)(\?.*)?$/i.test(selectedTicket.attachment) ||
-                          (selectedTicket.attachment.startsWith("http") && !selectedTicket.attachment.endsWith(".pdf")) ? (
+                            /\.(png|jpe?g|gif|webp)(\?.*)?$/i.test(selectedTicket.attachment) ||
+                            (selectedTicket.attachment.startsWith("http") && !selectedTicket.attachment.endsWith(".pdf")) ? (
                             <a
                               href={selectedTicket.attachment}
                               target="_blank"
@@ -849,26 +1250,24 @@ setFeedState("ready");
                 <div className="ticket-detail-panel-row">
                   <span>Hiện tại</span>
                   <strong>
-                    {(assignedTickets[selectedTicket.id] ?? selectedTicket.assignee) || "Chưa phân công"}
+                    {selectedTicket.assignee || "Chưa phân công"}
                   </strong>
                 </div>
-                <label style={{ display: "block", marginTop: "10px" }}>
-                  <span style={{ fontSize: "10px", color: "#718078", fontWeight: 600 }}>
-                    Chuyển phân công (4 thành viên):
-                  </span>
-                  <select
-                    className="ticket-detail-assign-select"
-                    value={assignedTickets[selectedTicket.id] ?? selectedTicket.assignee}
-                    onChange={(e) => handleAssignChange(e.target.value)}
-                  >
-                    <option value="">-- Chưa phân công --</option>
-                    {teamMembers.map((member) => (
-                      <option key={member.name} value={member.name}>
-                        {member.name} ({member.initials})
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                {canAssign ? (
+                  <label style={{ display: "block", marginTop: "10px" }}>
+                    <span style={{ fontSize: "10px", color: "#718078", fontWeight: 600 }}>
+                      Chuyển phân công (Lưu CSDL):
+                    </span>
+                    <button type="button" className="ticket-detail-assign-select"
+                      disabled={actionLoading} onClick={() => setAssignmentTicket(selectedTicket)}>
+                      {selectedTicket.assignee || 'Chưa phân công'} · Đổi Agent
+                    </button>
+                  </label>
+                ) : (
+                  <p style={{ fontSize: "11px", color: "#6b7280", marginTop: "8px" }}>
+                    Chỉ Quản trị viên (Admin) hoặc Quản lý (Manager) mới có quyền phân công.
+                  </p>
+                )}
               </div>
             </aside>
           </div>
@@ -1064,6 +1463,7 @@ function HelpDrawer({ onClose }) {
 
 function Sidebar({
   active,
+  currentUser,
   onNavigate,
   open,
   onClose,
@@ -1072,6 +1472,7 @@ function Sidebar({
   onToggleTheme,
   stats = { total: 0, pending: 0 },
 }) {
+  const userDisplay = getUserDisplay(currentUser);
   const [helpOpen, setHelpOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
@@ -1339,10 +1740,14 @@ function Sidebar({
               type="button"
               onClick={() => openSettings({ tab: "profile" })}
             >
-              <Avatar initials="NP" color="mint" title="Võ Ngọc Phú" />
+              <Avatar
+                initials={userDisplay.initials}
+                color={userDisplay.color}
+                title={userDisplay.name}
+              />
               <span className="profile-copy">
-                <strong>Võ Ngọc Phú</strong>
-                <small>Quản trị viên</small>
+                <strong>{userDisplay.name}</strong>
+                <small>{userDisplay.roleLabel}</small>
               </span>
             </button>
             <div className="profile-menu-anchor" ref={profileMenuRef}>
@@ -1539,10 +1944,10 @@ function Sidebar({
                         current.map((workspace) =>
                           workspace.id === selectedWorkspaceId
                             ? {
-                                ...workspace,
-                                plan: `Gói ${plan.name}`,
-                                planId: plan.id,
-                              }
+                              ...workspace,
+                              plan: `Gói ${plan.name}`,
+                              planId: plan.id,
+                            }
                             : workspace,
                         ),
                       );
@@ -1614,11 +2019,12 @@ function GlobalSearchModal({ onClose, onSelect }) {
     .slice(0, searchText ? 6 : 4)
     .map((rt) => {
       const code = rt.ticket_code || rt.id || `#TK-${String(rt.id).slice(0, 4)}`;
+      const apiStatus = normalizeTicketStatus(rt.status);
       return {
         id: `ticket-${code}`,
         type: "ticket",
         title: rt.subject || "Yêu cầu hỗ trợ",
-        detail: `${code} · ${rt.status === "CLOSED" ? "Đã giải quyết" : "Đang mở"}`,
+        detail: `${code} · ${getTicketStatus(apiStatus)}`,
         icon: FileText,
         destination: "Ticket List",
         search: code,
@@ -1790,6 +2196,7 @@ function GlobalSearchModal({ onClose, onSelect }) {
 
 function Header({
   onMenu,
+  currentUser,
   onLogout,
   onNavigate,
   onOpenSearch,
@@ -1799,6 +2206,7 @@ function Header({
   darkMode,
   sectionTitle,
 }) {
+  const userDisplay = getUserDisplay(currentUser);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const notificationsRef = useRef(null);
@@ -1950,10 +2358,15 @@ function Header({
               setAccountOpen((current) => !current);
             }}
           >
-            <Avatar initials="NP" color="mint" small title="Võ Ngọc Phú" />
+            <Avatar
+              initials={userDisplay.initials}
+              color={userDisplay.color}
+              small
+              title={userDisplay.name}
+            />
             <span className="topbar-user-copy">
-              <strong>Võ Ngọc Phú</strong>
-              <small>Quản trị viên</small>
+              <strong>{userDisplay.name}</strong>
+              <small>{userDisplay.roleLabel}</small>
             </span>
             <ChevronDown size={15} />
           </button>
@@ -1965,12 +2378,14 @@ function Header({
               >
                 <UserRound size={15} /> Hồ sơ của tôi
               </button>
-              <button
-                role="menuitem"
-                onClick={() => navigateSettings({ tab: "profile" })}
-              >
-                <Settings size={15} /> Cài đặt hệ thống
-              </button>
+              {userDisplay.roleKey === "admin" && (
+                <button
+                  role="menuitem"
+                  onClick={() => navigateSettings({ tab: "workspace" })}
+                >
+                  <Settings size={15} /> Cài đặt hệ thống
+                </button>
+              )}
               <button
                 role="menuitem"
                 onClick={() => {
@@ -2105,45 +2520,52 @@ function TicketTable({ onViewAll }) {
   useEffect(() => watchTickets(
     { limit: 5 },
     (items) => {
-            const mapped = items.map((rt) => {
-              const custName =
-                rt.customer?.full_name ||
-                rt.customer_name ||
-                rt.customer?.name ||
-                "Khách hàng";
-              const rawInitials = custName
-                ? custName
-                    .trim()
-                    .split(/\s+/)
-                    .map((w) => w[0])
-                    .slice(-2)
-                    .join("")
-                    .toUpperCase()
-                : "KH";
-              return {
-                ...getTicketTriage(rt),
-                id: rt.ticket_code || rt.id || `#TK-${String(rt.id).slice(0, 4)}`,
-                subject: rt.subject || "Yêu cầu hỗ trợ",
-                name: custName,
-                initials: rawInitials || "KH",
-                color: rt.is_urgent_bumped || rt.priority === "urgent" ? "peach" : "mint",
-                channel:
-                  rt.channel?.channel_type === "telegram" || rt.channel_type === "telegram"
-                    ? "Telegram"
-                    : rt.channel?.channel_type === "email" || rt.channel_type === "email"
-                      ? "Email"
-                      : "Web Form",
-                status: getTicketStatus(rt.status),
-                tone: rt.is_urgent_bumped || rt.priority === "urgent" ? "high" : rt.status === "CLOSED" ? "waiting" : "progress",
-                created_at: rt.created_at,
-                time: formatRelativeTime(rt.created_at),
-                assignee: rt.assigned_agent?.full_name || rt.assignee?.name || rt.assignee_name || "Chưa phân công",
-              };
-            });
-setRecentTickets(mapped);
-setFeedState("ready");
-}, () => setFeedState("error"),
-), []);
+      const mapped = items.map((rt) => {
+        const custName =
+          rt.customer?.full_name ||
+          rt.customer_name ||
+          rt.customer?.name ||
+          "Khách hàng";
+        const rawInitials = custName
+          ? custName
+            .trim()
+            .split(/\s+/)
+            .map((w) => w[0])
+            .slice(-2)
+            .join("")
+            .toUpperCase()
+          : "KH";
+        const apiStatus = normalizeTicketStatus(rt.status);
+        const apiPriority = normalizeTicketPriority(rt.priority);
+        return {
+          ...getTicketTriage(rt),
+          id: rt.ticket_code || rt.id || `#TK-${String(rt.id).slice(0, 4)}`,
+          subject: rt.subject || "Yêu cầu hỗ trợ",
+          name: custName,
+          initials: rawInitials || "KH",
+          color: rt.is_urgent_bumped || apiPriority === "urgent" ? "peach" : "mint",
+          channel:
+            rt.channel?.channel_type === "telegram" || rt.channel_type === "telegram"
+              ? "Telegram"
+              : rt.channel?.channel_type === "email" || rt.channel_type === "email"
+                ? "Email"
+                : "Web Form",
+          status: apiStatus,
+          tone:
+            rt.is_urgent_bumped || apiPriority === "urgent"
+              ? "high"
+              : ["resolved", "closed"].includes(apiStatus)
+                ? "waiting"
+                : "progress",
+          created_at: rt.created_at,
+          time: formatRelativeTime(rt.created_at),
+          assignee: rt.assigned_agent?.full_name || rt.assignee?.name || rt.assignee_name || "Chưa phân công",
+        };
+      });
+      setRecentTickets(mapped.sort(sortTicketsUrgentFirst));
+      setFeedState("ready");
+    }, () => setFeedState("error"),
+  ), []);
 
   return (
     <section className="panel ticket-panel">
@@ -2201,7 +2623,7 @@ setFeedState("ready");
                   <td>
                     <span className={`status status-${ticket.tone}`}>
                       <i />
-                      {ticket.status}
+                      {getTicketStatus(ticket.status)}
                     </span>
                   </td>
                   <td className="time-cell">{ticket.time}</td>
@@ -2231,35 +2653,48 @@ setFeedState("ready");
   );
 }
 
-const ticketStatuses = [
-  "Tất cả",
-  "Đang mở",
-  "Đang xử lý",
-  "Chờ phản hồi",
-  "Đã giải quyết",
+const ticketStatusOptions = [
+  { value: "ALL", label: "Tất cả" },
+  { value: "new", label: "Mới" },
+  { value: "open", label: "Đang mở" },
+  { value: "pending", label: "Đang chờ" },
+  { value: "resolved", label: "Đã giải quyết" },
+  { value: "closed", label: "Đã đóng" },
 ];
 
 const ticketStatusClasses = {
-  "Đang mở": "open",
-  "Đang xử lý": "progress",
-  "Chờ phản hồi": "waiting",
-  "Đã giải quyết": "resolved",
+  new: "open",
+  open: "open",
+  in_progress: "progress",
+  pending: "waiting",
+  resolved: "resolved",
+  closed: "resolved",
 };
 
 const ticketChannelIcons = {
   Email: Mail,
   "Web Form": Globe2,
+  Telegram: Send,
   Livechat: MessageCircle,
   Hotline: Headset,
 };
 
-function TicketManagement({ initialSearch = "" }) {
+function TicketManagement({ initialSearch = "", currentUser }) {
+  const userDisplay = getUserDisplay(currentUser);
+  const canAssign =
+    userDisplay.roleKey === "admin" || userDisplay.roleKey === "manager";
   const [feedState, setFeedState] = useState("loading");
-  const localRows = useRef(new Map());
-  const removedRows = useRef(new Set());
   const [rows, setRows] = useState([]);
+  const [serverTotal, setServerTotal] = useState(0);
+  const [serverTotalPages, setServerTotalPages] = useState(1);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [assignmentTicket, setAssignmentTicket] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState("");
   const [search, setSearch] = useState(initialSearch);
-  const [filter, setFilter] = useState("Tất cả");
+  const [filter, setFilter] = useState("ALL");
+  const [priorityFilter, setPriorityFilter] = useState("ALL");
+  const [sentimentFilter, setSentimentFilter] = useState("ALL");
   const [page, setPage] = useState(1);
   const [openMenu, setOpenMenu] = useState(null);
   const [dialog, setDialog] = useState(null);
@@ -2267,80 +2702,126 @@ function TicketManagement({ initialSearch = "" }) {
   const [selectedId, setSelectedId] = useState(null);
   const [draft, setDraft] = useState({});
 
-  useEffect(() => setSearch(initialSearch), [initialSearch]);
+  useEffect(() => {
+    setSearch(initialSearch);
+    setPage(1);
+  }, [initialSearch]);
 
-  useEffect(() => watchTickets(
-    { limit: 50 },
-    (items) => {
-            const mapped = items.map((rt) => {
-              const custName =
-                rt.customer?.full_name ||
-                rt.customer_name ||
-                rt.customer?.name ||
-                "Khách hàng";
-              const rawInitials = custName
-                ? custName
-                    .trim()
-                    .split(/\s+/)
-                    .map((w) => w[0])
-                    .slice(-2)
-                    .join("")
-                    .toUpperCase()
-                : "KH";
-              const firstMsg =
-                rt.description ||
-                rt.messages?.[0]?.content ||
-                rt.messages?.[rt.messages.length - 1]?.content ||
-                "";
-              return {
-                ...getTicketTriage(rt),
-                id: rt.ticket_code || rt.id || `#TK-${String(rt.id).slice(0, 4)}`,
-                subject: rt.subject || "Yêu cầu hỗ trợ",
-                preview: firstMsg ? (firstMsg.slice(0, 75) + "...") : "Không có nội dung chi tiết",
-                customer: custName,
-                initials: rawInitials || "KH",
-                color: rt.is_urgent_bumped || rt.priority === "urgent" ? "peach" : "mint",
-                channel:
-                  rt.channel?.channel_type === "telegram" || rt.channel_type === "telegram"
-                    ? "Telegram"
-                    : rt.channel?.channel_type === "email" || rt.channel_type === "email"
-                      ? "Email"
-                      : "Web Form",
-                assignee: rt.assigned_agent?.full_name || rt.assignee?.name || rt.assignee_name || "Chưa phân công",
-                priority: rt.is_urgent_bumped
-                  ? "Khẩn cấp (AI Bump)"
-                  : rt.priority === "urgent"
-                    ? "Khẩn cấp"
-                    : rt.priority === "high"
-                      ? "Cao"
-                      : "Trung bình",
-                status: getTicketStatus(rt.status),
-                created_at: rt.created_at,
-                time: formatRelativeTime(rt.created_at),
-              };
-            });
-setRows(mapped.filter(row => !removedRows.current.has(row.id)).map(row => {
- const changes = localRows.current.get(row.id);
- return changes ? { ...row, ...changes, priority: row.isAiBumped ? row.priority : changes.priority } : row;
-}).concat([...localRows.current.values()].filter(row => row.id && !mapped.some(item => item.id === row.id) && !removedRows.current.has(row.id))));
-setFeedState("ready");
-}, () => setFeedState("error"),
-), []);
+  const effectiveStatusParam = filter !== "ALL" ? filter : undefined;
+  const effectivePriorityParam =
+    priorityFilter !== "ALL" && priorityFilter !== "AI_BUMP"
+      ? priorityFilter
+      : undefined;
+  const effectiveBumpedParam =
+    priorityFilter === "AI_BUMP" ? "true" : undefined;
+  const effectiveSentimentParam =
+    sentimentFilter !== "ALL" ? sentimentFilter : undefined;
+  const effectiveSearchParam = search.trim() || undefined;
+
+  useEffect(
+    () =>
+      watchTickets(
+        {
+          page,
+          limit: 10,
+          status: effectiveStatusParam,
+          priority: effectivePriorityParam,
+          is_urgent_bumped: effectiveBumpedParam,
+          sentiment_label: effectiveSentimentParam,
+          search: effectiveSearchParam,
+        },
+        (items, meta) => {
+          const mapped = items.map((rt) => {
+            const custName =
+              rt.customer?.full_name ||
+              rt.customer_name ||
+              rt.customer?.name ||
+              "Khách hàng";
+            const rawInitials = custName
+              ? custName
+                  .trim()
+                  .split(/\s+/)
+                  .map((w) => w[0])
+                  .slice(-2)
+                  .join("")
+                  .toUpperCase()
+              : "KH";
+            const firstMsg =
+              rt.description ||
+              rt.messages?.[0]?.content ||
+              rt.messages?.[rt.messages.length - 1]?.content ||
+              "";
+            const apiStatus = normalizeTicketStatus(rt.status);
+            const apiPriority = normalizeTicketPriority(rt.priority);
+            return {
+              ...getTicketTriage(rt),
+              id:
+                rt.ticket_code ||
+                rt.id ||
+                `#TK-${String(rt.id).slice(0, 4)}`,
+              subject: rt.subject || "Yêu cầu hỗ trợ",
+              preview: firstMsg
+                ? firstMsg.slice(0, 75) + "..."
+                : "Không có nội dung chi tiết",
+              customer: custName,
+              customerEmail:
+                rt.customer?.email ||
+                rt.customer_email ||
+                "customer@example.com",
+              initials: rawInitials || "KH",
+              color:
+                rt.is_urgent_bumped || apiPriority === "urgent"
+                  ? "peach"
+                  : "mint",
+              channel:
+                rt.channel?.channel_type === "telegram" ||
+                rt.channel_type === "telegram"
+                  ? "Telegram"
+                  : rt.channel?.channel_type === "email" ||
+                      rt.channel_type === "email"
+                    ? "Email"
+                    : "Web Form",
+              assigneeId:
+                rt.assigned_agent_id || rt.assigned_agent?.user_id || "",
+              assignee:
+                rt.assigned_agent?.full_name ||
+                rt.assignee?.name ||
+                rt.assignee_name ||
+                "Chưa phân công",
+              priority: apiPriority,
+              priorityLabel: getTicketPriorityLabel(
+                apiPriority,
+                Boolean(rt.is_urgent_bumped),
+              ),
+              status: apiStatus,
+              created_at: rt.created_at,
+              time: formatRelativeTime(rt.created_at),
+            };
+          });
+          setRows(mapped.sort(sortTicketsUrgentFirst));
+          setServerTotal(meta?.total ?? mapped.length);
+          setServerTotalPages(Math.max(1, meta?.totalPages ?? 1));
+          setFeedState("ready");
+        },
+        () => setFeedState("error"),
+      ),
+    [
+      page,
+      effectiveStatusParam,
+      effectivePriorityParam,
+      effectiveBumpedParam,
+      effectiveSentimentParam,
+      effectiveSearchParam,
+      refreshKey,
+    ],
+  );
 
   const selectedTicket = rows.find((ticket) => ticket.id === selectedId);
-  const filteredRows = rows.filter((ticket) => {
-    const matchesFilter = filter === "Tất cả" || ticket.status === filter;
-    const searchableText = `${ticket.id} ${ticket.subject} ${ticket.preview} ${ticket.customer} ${ticket.priority} ${ticket.status} ${ticket.assignee}`;
-    return (
-      matchesFilter &&
-      searchableText.toLowerCase().includes(search.toLowerCase())
-    );
-  });
-  const totalCount = filteredRows.length;
-  const totalPages = Math.max(1, Math.ceil(totalCount / 10));
+  const totalCount = serverTotal;
+  const totalPages = Math.max(1, serverTotalPages);
   const visibleStart = totalCount === 0 ? 0 : (page - 1) * 10 + 1;
   const visibleEnd = Math.min(page * 10, totalCount);
-  const pageRows = filteredRows.slice((page - 1) * 10, page * 10);
+  const pageRows = rows;
   const pageNumbers =
     totalPages <= 4
       ? Array.from({ length: totalPages }, (_, index) => index + 1)
@@ -2358,59 +2839,119 @@ setFeedState("ready");
 
   const openCreateDialog = () => {
     setEditingId(null);
+    setFormError("");
     setDraft({
       subject: "",
       preview: "",
       customer: "",
+      customerEmail: "customer@example.com",
       initials: "",
       color: "lilac",
-      channel: "Email",
-      assignee: teamMembers[0].name,
-      priority: "Trung bình",
-      status: "Đang mở",
+      channel: "Web Form",
+      assigneeId: "",
+      assignee: "Chưa phân công",
+      priority: "medium",
+      status: "new",
     });
     setDialog("form");
   };
 
   const openEditDialog = (ticket) => {
     setEditingId(ticket.id);
-    setDraft({ ...ticket });
+    setFormError("");
+    setDraft({
+      ...ticket,
+      status: normalizeTicketStatus(ticket.status),
+      priority: normalizeTicketPriority(ticket.priority),
+    });
     setOpenMenu(null);
     setDialog("form");
   };
 
-  const saveTicket = (event) => {
+  const saveTicket = async (event) => {
     event.preventDefault();
-    const initials =
-      draft.initials.trim() || draft.customer.trim().slice(0, 2).toUpperCase();
-    const ticket = {
-      ...draft,
-      id: editingId ?? `#TK-${String(2852 + rows.length).padStart(4, "0")}`,
-      initials,
-      time: editingId
-        ? (rows.find((item) => item.id === editingId)?.time ?? "Vừa xong")
-        : "Vừa xong",
-    };
-    const changes = Object.fromEntries(
-      ["subject", "preview", "customer", "initials", "color", "channel", "assignee", "priority", "status"].map(field => [field, ticket[field]])
-    );
-    localRows.current.set(ticket.id, editingId ? changes : ticket);
-    setRows((current) =>
-      editingId
-        ? current.map((item) => (item.id === editingId ? ticket : item))
-        : [ticket, ...current],
-    );
-    setPage(1);
-    setDialog(null);
+    if (saving) return;
+    setSaving(true);
+    setFormError("");
+    try {
+      const apiStatus = normalizeTicketStatus(draft.status);
+      const apiPriority = normalizeTicketPriority(draft.priority);
+      if (editingId) {
+        await ticketService.updateTicket(editingId, {
+          status: apiStatus,
+          priority: apiPriority,
+        });
+        setRows((current) =>
+          current.map((item) =>
+            item.id === editingId
+              ? {
+                  ...item,
+                  status: apiStatus,
+                  priority: apiPriority,
+                  priorityLabel: getTicketPriorityLabel(
+                    apiPriority,
+                    Boolean(item.isAiBumped && apiPriority === "urgent"),
+                  ),
+                }
+              : item,
+          ),
+        );
+      } else {
+        const channelType =
+          draft.channel === "Email"
+            ? "email"
+            : draft.channel === "Telegram"
+              ? "telegram"
+              : "web";
+        const descText =
+          draft.preview?.trim().length >= 10
+            ? draft.preview.trim()
+            : `${draft.preview?.trim() || draft.subject?.trim() || "Yêu cầu hỗ trợ"} - chi tiết yêu cầu`;
+        await ticketService.createTicket({
+          customer_name: draft.customer?.trim() || "Khách hàng",
+          customer_email:
+            draft.customerEmail?.trim() || "customer@example.com",
+          subject:
+            draft.subject?.trim().length >= 5
+              ? draft.subject.trim()
+              : `${draft.subject?.trim() || "Hỗ trợ"} #ticket`,
+          description: descText,
+          channel_type: channelType,
+          priority: apiPriority,
+        });
+        setPage(1);
+      }
+      setRefreshKey((k) => k + 1);
+      setDialog(null);
+    } catch (error) {
+      const msg =
+        error.response?.data?.message ||
+        error.message ||
+        "Không thể lưu yêu cầu vào cơ sở dữ liệu.";
+      setFormError(Array.isArray(msg) ? msg.join(". ") : msg);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const removeTicket = () => {
-    removedRows.current.add(selectedId);
-    localRows.current.delete(selectedId);
-    setRows((current) => current.filter((ticket) => ticket.id !== selectedId));
-    setDialog(null);
-    setSelectedId(null);
-    setOpenMenu(null);
+  const closeTicketAction = async () => {
+    if (!selectedId || saving) return;
+    setSaving(true);
+    try {
+      await ticketService.updateTicket(selectedId, { status: "closed" });
+      setRefreshKey((k) => k + 1);
+      setDialog(null);
+      setSelectedId(null);
+      setOpenMenu(null);
+    } catch (error) {
+      const msg =
+        error.response?.data?.message ||
+        error.message ||
+        "Không thể đóng yêu cầu.";
+      setFormError(Array.isArray(msg) ? msg.join(". ") : msg);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const openDetails = (ticket) => {
@@ -2425,7 +2966,7 @@ setFeedState("ready");
         <div>
           <div className="ticket-management-title-line">
             <h1>Danh sách yêu cầu</h1>
-            <span className="ticket-total-badge">{rows.length} yêu cầu</span>
+            <span className="ticket-total-badge">{serverTotal} yêu cầu</span>
           </div>
           <p>Theo dõi, phân công và xử lý các yêu cầu hỗ trợ.</p>
         </div>
@@ -2439,6 +2980,8 @@ setFeedState("ready");
 
       <TicketFeedStatus state={feedState} />
       <section className="ticket-management-panel">
+      {assignmentTicket && canAssign && <AssignTicketModal key={assignmentTicket.id} ticket={assignmentTicket}
+        onClose={() => setAssignmentTicket(null)} onAssigned={() => setRefreshKey(key => key + 1)} />}
         <div className="ticket-toolbar">
           <label className="ticket-search">
             <Search size={16} />
@@ -2455,7 +2998,10 @@ setFeedState("ready");
               <button
                 type="button"
                 aria-label="Xóa tìm kiếm"
-                onClick={() => setSearch("")}
+                onClick={() => {
+                  setSearch("");
+                  setPage(1);
+                }}
               >
                 <X size={14} />
               </button>
@@ -2471,28 +3017,102 @@ setFeedState("ready");
           role="tablist"
           aria-label="Lọc theo trạng thái"
         >
-          {ticketStatuses.map((status) => {
-            const count =
-              status === "Tất cả"
-                ? rows.length
-                : rows.filter((r) => r.status === status).length;
+          {ticketStatusOptions.map((opt) => {
             return (
               <button
-                key={status}
+                key={opt.value}
                 type="button"
                 role="tab"
-                aria-selected={filter === status}
-                className={filter === status ? "ticket-filter-active" : ""}
+                aria-selected={filter === opt.value}
+                className={filter === opt.value ? "ticket-filter-active" : ""}
                 onClick={() => {
-                  setFilter(status);
+                  setFilter(opt.value);
                   setPage(1);
                 }}
               >
-                {status} <span>{count}</span>
+                {opt.label} {filter === opt.value && <span>{serverTotal}</span>}
               </button>
             );
           })}
         </div>
+
+        <div
+          className="advanced-filter-bar ticket-advanced-filter"
+          aria-label="Bộ lọc ticket nâng cao"
+        >
+          <select
+            aria-label="Lọc độ ưu tiên"
+            value={priorityFilter}
+            onChange={(event) => {
+              setPriorityFilter(event.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="ALL">Ưu tiên: Tất cả</option>
+            <option value="AI_BUMP">🔥 AI Urgent Bump</option>
+            <option value="urgent">Khẩn cấp (Urgent)</option>
+            <option value="high">Cao (High)</option>
+            <option value="medium">Trung bình (Normal)</option>
+            <option value="low">Thấp (Low)</option>
+          </select>
+          <select
+            aria-label="Lọc cảm xúc AI"
+            value={sentimentFilter}
+            onChange={(event) => {
+              setSentimentFilter(event.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="ALL">Cảm xúc AI: Tất cả</option>
+            <option value="frustrated">😡 Bực bội / Tiêu cực</option>
+            <option value="neutral">😐 Trung tính</option>
+            <option value="positive">😊 Hài lòng / Tích cực</option>
+          </select>
+        </div>
+
+        {(filter !== "ALL" ||
+          priorityFilter !== "ALL" ||
+          sentimentFilter !== "ALL") && (
+          <div className="active-filter-row">
+            {filter !== "ALL" && (
+              <span className="active-filter-pill">
+                Trạng thái: {getTicketStatus(filter)}
+              </span>
+            )}
+            {priorityFilter !== "ALL" && (
+              <span className="active-filter-pill">
+                Ưu tiên:{" "}
+                {priorityFilter === "AI_BUMP"
+                  ? "🔥 AI Urgent Bump"
+                  : getTicketPriorityLabel(priorityFilter, false)}
+              </span>
+            )}
+            {sentimentFilter !== "ALL" && (
+              <span className="active-filter-pill">
+                Cảm xúc:{" "}
+                {sentimentFilter === "frustrated"
+                  ? "Bực bội"
+                  : sentimentFilter === "positive"
+                    ? "Hài lòng"
+                    : "Trung tính"}
+              </span>
+            )}
+            <span className="active-filter-count">
+              {serverTotal} ticket khớp
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setFilter("ALL");
+                setPriorityFilter("ALL");
+                setSentimentFilter("ALL");
+                setPage(1);
+              }}
+            >
+              <X size={13} /> Xóa tất cả bộ lọc
+            </button>
+          </div>
+        )}
 
         <div className="ticket-management-scroll">
           <table className="ticket-management-table">
@@ -2511,14 +3131,18 @@ setFeedState("ready");
             <tbody>
               {pageRows.map((ticket) => {
                 const assignee = getTeamMember(ticket.assignee);
-                const ChannelIcon = ticketChannelIcons[ticket.channel] ?? Mail;
+                const ChannelIconComponent =
+                  ticketChannelIcons[ticket.channel] ?? Mail;
                 const priorityClass =
-                  ticket.isAiBumped || ticket.priority.startsWith("Khẩn cấp") ? "urgent" :
-                  ticket.priority === "Cao"
-                    ? "high"
-                    : ticket.priority === "Thấp"
-                      ? "low"
-                      : "medium";
+                  ticket.isAiBumped || ticket.priority === "urgent"
+                    ? "urgent"
+                    : ticket.priority === "high"
+                      ? "high"
+                      : ticket.priority === "low"
+                        ? "low"
+                        : "medium";
+                const statusClass =
+                  ticketStatusClasses[ticket.status] || "open";
                 return (
                   <tr key={ticket.id}>
                     <td>
@@ -2547,18 +3171,28 @@ setFeedState("ready");
                       <span
                         className={`management-channel channel-${ticket.channel.toLowerCase().replaceAll(" ", "-")}`}
                       >
-                        <ChannelIcon size={15} /> {ticket.channel}
+                        <ChannelIconComponent size={15} /> {ticket.channel}
                       </span>
                     </td>
                     <td>
                       <div className="management-person-cell management-assignee">
                         <Avatar
-                          initials={assignee.initials}
-                          color={assignee.color}
+                          initials={
+                            ticket.assignee &&
+                            ticket.assignee !== "Chưa phân công"
+                              ? assignee.initials
+                              : "?"
+                          }
+                          color={
+                            ticket.assignee &&
+                            ticket.assignee !== "Chưa phân công"
+                              ? assignee.color
+                              : "slate"
+                          }
                           small
-                          title={assignee.name}
+                          title={ticket.assignee || "Chưa phân công"}
                         />
-                        <span>{assignee.name}</span>
+                        <span>{ticket.assignee || "Chưa phân công"}</span>
                       </div>
                     </td>
                     <td>
@@ -2566,15 +3200,15 @@ setFeedState("ready");
                         className={`ticket-priority ticket-priority-${priorityClass}`}
                       >
                         <i />
-                        {ticket.priority}
+                        {ticket.priorityLabel}
                       </span>
                     </td>
                     <td>
                       <span
-                        className={`ticket-status ticket-status-${ticketStatusClasses[ticket.status]}`}
+                        className={`ticket-status ticket-status-${statusClass}`}
                       >
                         <i />
-                        {ticket.status}
+                        {getTicketStatus(ticket.status)}
                       </span>
                     </td>
                     <td>
@@ -2610,7 +3244,7 @@ setFeedState("ready");
                                 setDialog("delete");
                               }}
                             >
-                              <Trash2 size={15} /> Xóa yêu cầu
+                              <Trash2 size={15} /> Đóng yêu cầu
                             </button>
                           </div>
                         )}
@@ -2621,8 +3255,17 @@ setFeedState("ready");
               })}
               {pageRows.length === 0 && (
                 <tr>
-                  <td className="ticket-empty-cell" colSpan={8} style={{ textAlign: "center", padding: "3rem 1rem", color: "#6b7280" }}>
-                    Chưa có yêu cầu hỗ trợ nào trong hệ thống. Hãy tạo vé mới từ Web Portal hoặc gửi qua Email / Telegram.
+                  <td
+                    className="ticket-empty-cell"
+                    colSpan={8}
+                    style={{
+                      textAlign: "center",
+                      padding: "3rem 1rem",
+                      color: "#6b7280",
+                    }}
+                  >
+                    Chưa có yêu cầu hỗ trợ nào khớp điều kiện. Hãy tạo vé mới từ
+                    Web Portal hoặc gửi qua Email / Telegram.
                   </td>
                 </tr>
               )}
@@ -2694,12 +3337,12 @@ setFeedState("ready");
                 </span>
                 <h2 id="ticket-dialog-title">
                   {dialog === "delete"
-                    ? "Xóa yêu cầu?"
+                    ? "Đóng yêu cầu?"
                     : dialog === "details"
                       ? `Chi tiết ${selectedTicket?.id ?? "ticket"}`
                       : editingId
-                        ? "Chỉnh sửa yêu cầu"
-                        : "Tạo yêu cầu mới"}
+                        ? "Chỉnh sửa yêu cầu (Lưu CSDL)"
+                        : "Tạo yêu cầu mới (Lưu CSDL)"}
                 </h2>
               </div>
               <button
@@ -2710,12 +3353,33 @@ setFeedState("ready");
                 <X size={18} />
               </button>
             </header>
+            {formError && (
+              <p
+                role="alert"
+                style={{
+                  margin: "0 20px 10px",
+                  padding: "8px 12px",
+                  borderRadius: "8px",
+                  fontSize: "13px",
+                  background: "#fef2f2",
+                  color: "#b91c1c",
+                  border: "1px solid #fecaca",
+                }}
+              >
+                {formError}
+              </p>
+            )}
             {dialog === "form" ? (
               <form className="ticket-dialog-form" onSubmit={saveTicket}>
+                {canAssign && editingId && <button type="button" className="secondary-button"
+                  onClick={() => { setAssignmentTicket(rows.find(item => item.id === editingId)); setDialog(null); }}>
+                  Phân công Agent
+                </button>}
                 <label>
                   Tiêu đề yêu cầu
                   <input
                     required
+                    disabled={Boolean(editingId)}
                     value={draft.subject ?? ""}
                     onChange={(event) =>
                       setDraft({ ...draft, subject: event.target.value })
@@ -2724,15 +3388,16 @@ setFeedState("ready");
                   />
                 </label>
                 <label>
-                  Nội dung xem trước
+                  Nội dung mô tả
                   <textarea
                     required
+                    disabled={Boolean(editingId)}
                     rows={3}
                     value={draft.preview ?? ""}
                     onChange={(event) =>
                       setDraft({ ...draft, preview: event.target.value })
                     }
-                    placeholder="Tóm tắt nội dung khách hàng cần hỗ trợ"
+                    placeholder="Tóm tắt nội dung khách hàng cần hỗ trợ (tối thiểu 10 ký tự)"
                   />
                 </label>
                 <div className="ticket-dialog-form-grid">
@@ -2740,6 +3405,7 @@ setFeedState("ready");
                     Khách hàng
                     <input
                       required
+                      disabled={Boolean(editingId)}
                       value={draft.customer ?? ""}
                       onChange={(event) =>
                         setDraft({ ...draft, customer: event.target.value })
@@ -2748,68 +3414,63 @@ setFeedState("ready");
                     />
                   </label>
                   <label>
-                    Initial avatar
+                    Email khách hàng
                     <input
-                      maxLength={3}
-                      value={draft.initials ?? ""}
+                      type="email"
+                      required
+                      disabled={Boolean(editingId)}
+                      value={draft.customerEmail ?? "customer@example.com"}
                       onChange={(event) =>
-                        setDraft({ ...draft, initials: event.target.value })
+                        setDraft({
+                          ...draft,
+                          customerEmail: event.target.value,
+                        })
                       }
-                      placeholder="NA"
+                      placeholder="customer@example.com"
                     />
                   </label>
                   <label>
                     Kênh tiếp nhận
                     <select
-                      value={draft.channel}
+                      disabled={Boolean(editingId)}
+                      value={draft.channel || "Web Form"}
                       onChange={(event) =>
                         setDraft({ ...draft, channel: event.target.value })
                       }
                     >
-                      <option>Email</option>
-                      <option>Web Form</option>
-                      <option>Livechat</option>
-                      <option>Hotline</option>
+                      <option value="Web Form">Web Form</option>
+                      <option value="Email">Email</option>
+                      <option value="Telegram">Telegram</option>
                     </select>
                   </label>
-                  <label>
-                    Người phụ trách
-                    <select
-                      value={draft.assignee}
-                      onChange={(event) =>
-                        setDraft({ ...draft, assignee: event.target.value })
-                      }
-                    >
-                      {teamMembers.map((member) => (
-                        <option key={member.initials} value={member.name}>
-                          {member.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+
                   <label>
                     Độ ưu tiên
                     <select
-                      value={draft.priority}
+                      value={normalizeTicketPriority(draft.priority)}
                       onChange={(event) =>
                         setDraft({ ...draft, priority: event.target.value })
                       }
                     >
-                      <option>Cao</option>
-                      <option>Trung bình</option>
-                      <option>Thấp</option>
+                      <option value="urgent">Khẩn cấp (Urgent)</option>
+                      <option value="high">Cao (High)</option>
+                      <option value="medium">Trung bình (Medium)</option>
+                      <option value="low">Thấp (Low)</option>
                     </select>
                   </label>
                   <label>
                     Trạng thái
                     <select
-                      value={draft.status}
+                      disabled={!editingId}
+                      value={normalizeTicketStatus(draft.status)}
                       onChange={(event) =>
                         setDraft({ ...draft, status: event.target.value })
                       }
                     >
-                      {ticketStatuses.slice(1).map((status) => (
-                        <option key={status}>{status}</option>
+                      {ticketStatusOptions.slice(1).map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
                       ))}
                     </select>
                   </label>
@@ -2818,12 +3479,18 @@ setFeedState("ready");
                   <button
                     type="button"
                     className="ticket-secondary-button"
+                    disabled={saving}
                     onClick={() => setDialog(null)}
                   >
                     Hủy
                   </button>
-                  <button type="submit" className="primary-button">
-                    <Check size={15} /> Lưu yêu cầu
+                  <button
+                    type="submit"
+                    className="primary-button"
+                    disabled={saving}
+                  >
+                    <Check size={15} />{" "}
+                    {saving ? "Đang lưu CSDL..." : "Lưu yêu cầu"}
                   </button>
                 </footer>
               </form>
@@ -2848,11 +3515,11 @@ setFeedState("ready");
                   </div>
                   <div>
                     <dt>Độ ưu tiên</dt>
-                    <dd>{selectedTicket.priority}</dd>
+                    <dd>{selectedTicket.priorityLabel}</dd>
                   </div>
                   <div>
                     <dt>Trạng thái</dt>
-                    <dd>{selectedTicket.status}</dd>
+                    <dd>{getTicketStatus(selectedTicket.status)}</dd>
                   </div>
                   <div>
                     <dt>Thời gian</dt>
@@ -2877,21 +3544,25 @@ setFeedState("ready");
             ) : (
               <div className="ticket-delete-content">
                 <p>
-                  Yêu cầu <strong>{selectedTicket?.id}</strong> sẽ bị xóa khỏi
-                  danh sách mẫu.
+                  Yêu cầu <strong>{selectedTicket?.id}</strong> sẽ được chuyển
+                  sang trạng thái <strong>Đã đóng (closed)</strong> trong cơ sở
+                  dữ liệu.
                 </p>
                 <footer className="ticket-dialog-actions">
                   <button
                     className="ticket-secondary-button"
+                    disabled={saving}
                     onClick={() => setDialog(null)}
                   >
                     Giữ lại
                   </button>
                   <button
                     className="ticket-delete-button"
-                    onClick={removeTicket}
+                    disabled={saving}
+                    onClick={closeTicketAction}
                   >
-                    <Trash2 size={15} /> Xóa yêu cầu
+                    <Trash2 size={15} />{" "}
+                    {saving ? "Đang đóng..." : "Đóng yêu cầu"}
                   </button>
                 </footer>
               </div>
@@ -3012,7 +3683,18 @@ function AuthPage({ mode, onLogin }) {
         <div className="auth-brand-copy">
           <span className="auth-kicker">KHÔNG GIAN HỖ TRỢ</span>
           <h1>Mọi cuộc trò chuyện, trong tầm tay.</h1>
-          <p>HelpDesk · Nền tảng chăm sóc khách hàng</p>
+          <p>Unified Inbox · AI Triage · Phân quyền theo vai trò</p>
+          <div className="auth-feature-list">
+            <span>
+              <Sparkles size={14} /> AI Triage cảm xúc &amp; ưu tiên
+            </span>
+            <span>
+              <ShieldCheck size={14} /> Quyền truy cập linh hoạt (Admin / Manager / Agent)
+            </span>
+            <span>
+              <Activity size={14} /> Cập nhật hàng đợi trực tiếp
+            </span>
+          </div>
         </div>
         <div className="auth-brand-footer">
           <span className="auth-status-dot" />
@@ -3098,8 +3780,9 @@ function AuthPage({ mode, onLogin }) {
                     value={role}
                     onChange={(event) => setRole(event.target.value)}
                   >
-                    <option value="support">Nhân viên CSKH</option>
-                    <option value="admin">Quản trị viên</option>
+                    <option value="agent">Nhân viên CSKH (Agent)</option>
+                    <option value="manager">Quản lý CSKH (Manager)</option>
+                    <option value="admin">Quản trị viên (Admin)</option>
                   </select>
                   <ChevronDown size={15} />
                 </span>
@@ -3188,6 +3871,37 @@ function AuthPage({ mode, onLogin }) {
               <ArrowRight size={17} />
             </button>
           </form>
+
+          {!isRegister && (
+            <div className="quick-login-panel">
+              <div className="quick-login-heading">
+                <span>Chọn nhanh tài khoản theo vai trò</span>
+                <small>RBAC 3 Vai trò</small>
+              </div>
+              {teamMembers.slice(0, 3).map((member) => (
+                <button
+                  className="quick-login-button"
+                  type="button"
+                  key={member.email}
+                  onClick={() => {
+                    setEmail(member.email);
+                    setError("");
+                    setNotice(`Đã chọn tài khoản ${member.roleLabel} (${member.email}). Nhập mật khẩu để đăng nhập.`);
+                    document.getElementById("authPassword")?.focus();
+                  }}
+                >
+                  <Avatar initials={member.initials} color={member.color} small />
+                  <span>
+                    <strong>{member.name}</strong>
+                    <small>
+                      {member.email} · {member.roleLabel}
+                    </small>
+                  </span>
+                  <ArrowRight size={15} />
+                </button>
+              ))}
+            </div>
+          )}
 
           <p className="auth-switch">
             {isRegister ? "Đã có tài khoản?" : "Chưa có tài khoản?"}{" "}
@@ -3291,11 +4005,13 @@ function App() {
               res?.items ||
               [];
             if (Array.isArray(items)) {
-              const total = items.length;
-              const resolved = items.filter(
-                (t) => (t.status || "").toLowerCase() === "closed" || (t.status || "").toLowerCase() === "resolved",
+              const total = Number(
+                res?.total ?? res?.data?.total ?? items.length,
+              );
+              const resolved = items.filter((t) =>
+                ["resolved", "closed"].includes(normalizeTicketStatus(t.status)),
               ).length;
-              const pending = total - resolved;
+              const pending = Math.max(0, total - resolved);
               setDashboardStats({ total, resolved, pending });
             }
           })
@@ -3460,10 +4176,12 @@ function App() {
     navigate(result.destination, { search: result.search });
     setGlobalSearchOpen(false);
   };
+  const userDisplay = getUserDisplay(currentUser);
   return (
     <div className={`app-shell ${darkMode ? "app-shell-dark" : ""}`}>
       <Sidebar
         active={active}
+        currentUser={currentUser}
         onNavigate={navigate}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -3475,6 +4193,7 @@ function App() {
       <main className="main-area">
         <Header
           onMenu={() => setSidebarOpen(true)}
+          currentUser={currentUser}
           onLogout={handleLogout}
           onNavigate={navigate}
           onOpenSearch={() => setGlobalSearchOpen(true)}
@@ -3496,7 +4215,7 @@ function App() {
                   THỨ HAI, 14 THÁNG 10, 2024
                 </div>
                 <h1>
-                  Chào buổi sáng, Võ Ngọc Phú <span className="wave">✳</span>
+                  Chào buổi sáng, {userDisplay.name} <span className="wave">✳</span>
                 </h1>
                 <p>Đây là những gì đang diễn ra với nhóm hỗ trợ của bạn.</p>
               </div>
@@ -3546,14 +4265,15 @@ function App() {
             </footer>
           </div>
         ) : active === "Unified Inbox" ? (
-          <InboxScreen initialQuery={inboxSearch} />
+          <InboxScreen initialQuery={inboxSearch} currentUser={currentUser} />
         ) : active === "Ticket List" ? (
-          <TicketManagement initialSearch={ticketSearch} />
+          <TicketManagement initialSearch={ticketSearch} currentUser={currentUser} />
         ) : active === "Settings" ? (
           <SettingsPage
             key={settingsRequest}
             defaultTab={settingsTab}
             focusPassword={focusPassword}
+            currentUser={currentUser}
           />
         ) : (
           <div className="dashboard-content section-content">

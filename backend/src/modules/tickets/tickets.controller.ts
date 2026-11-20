@@ -18,6 +18,7 @@ import { CreateTicketDto } from './dto/create-ticket.dto.js';
 import { QueryTicketDto } from './dto/query-ticket.dto.js';
 
 import { UpdateTicketDto } from './dto/update-ticket.dto.js';
+import { AssignTicketDto } from './dto/assign-ticket.dto.js';
 import { AuthGuard } from '../auth/auth.guard.js';
 import type { AuthenticatedRequest } from '../auth/auth.guard.js';
 import { RolesGuard } from '../auth/roles.guard.js';
@@ -130,6 +131,43 @@ export class TicketsController {
                     changed_at: history.changed_at,
                 })),
             },
+        };
+    }
+
+    @Get('agents')
+    @ApiBearerAuth()
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles('admin', 'manager')
+    @ApiOperation({ summary: 'Lấy danh sách Agent đang hoạt động' })
+    async getActiveAgents() {
+        return {
+            statusCode: HttpStatus.OK,
+            data: await this.ticketsService.getActiveAgents(),
+        };
+    }
+
+    @Patch(':id/assign')
+    @ApiBearerAuth()
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles('admin', 'manager')
+    @ApiOperation({ summary: 'Phân công ticket thủ công cho Agent' })
+    async assignTicket(@Param('id') id: string, @Body() dto: AssignTicketDto) {
+        return {
+            statusCode: HttpStatus.OK,
+            data: await this.ticketsService.assignTicket(id, dto.agent_id),
+        };
+    }
+
+    @Post(':id/assign-round-robin')
+    @HttpCode(HttpStatus.OK)
+    @ApiBearerAuth()
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles('admin', 'manager')
+    @ApiOperation({ summary: 'Phân công ticket chưa có Agent bằng Round-robin' })
+    async assignTicketRoundRobin(@Param('id') id: string) {
+        return {
+            statusCode: HttpStatus.OK,
+            data: await this.ticketsService.assignTicketRoundRobin(id),
         };
     }
 

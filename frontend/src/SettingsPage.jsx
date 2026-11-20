@@ -76,7 +76,7 @@ const initialMembers = [
     name: "Võ Thị Thu Lộc",
     email: "votthuloc@dtu.edu.vn",
     initials: "TL",
-    role: "Nhân viên CSKH",
+    role: "Quản lý CSKH",
     status: "Đang hoạt động",
     color: "peach",
   },
@@ -165,13 +165,23 @@ function makeInitials(name) {
     .toLocaleUpperCase("vi-VN");
 }
 
-function SettingsPage({ defaultTab = "profile", focusPassword = false }) {
+function mapRoleLabel(roleInput) {
+  const key = String(roleInput || "admin").toLowerCase();
+  if (key === "admin" || key === "quản trị viên") return "Quản trị viên";
+  if (key === "manager" || key === "quản lý" || key === "quản lý cskh") return "Quản lý CSKH";
+  return "Nhân viên CSKH";
+}
+
+function SettingsPage({ defaultTab = "profile", focusPassword = false, currentUser }) {
+  const roleKey = String(currentUser?.role || "admin").toLowerCase();
+  const isAgent = roleKey === "agent" || roleKey === "nhân viên cskh";
+  const isManager = roleKey === "manager" || roleKey === "quản lý cskh";
   const [activeTab, setActiveTab] = useState(defaultTab);
   const currentPasswordRef = useRef(null);
   const [profile, setProfile] = useState({
-    name: "Võ Ngọc Phú",
-    email: "vongocphu136@gmail.com",
-    role: "Quản trị viên",
+    name: currentUser?.full_name || currentUser?.name || "Võ Ngọc Phú",
+    email: currentUser?.email || "vongocphu136@gmail.com",
+    role: currentUser?.roleLabel || mapRoleLabel(currentUser?.role),
   });
   const [avatar, setAvatar] = useState("");
   const [passwords, setPasswords] = useState({
@@ -199,8 +209,24 @@ function SettingsPage({ defaultTab = "profile", focusPassword = false }) {
   });
 
   useEffect(() => {
-    setActiveTab(defaultTab);
-  }, [defaultTab]);
+    if (currentUser) {
+      setProfile({
+        name: currentUser.full_name || currentUser.name || "Võ Ngọc Phú",
+        email: currentUser.email || "vongocphu136@gmail.com",
+        role: currentUser.roleLabel || mapRoleLabel(currentUser.role),
+      });
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (isAgent && ["team", "channels", "workspace"].includes(defaultTab)) {
+      setActiveTab("profile");
+    } else if (isManager && ["channels", "workspace"].includes(defaultTab)) {
+      setActiveTab("profile");
+    } else {
+      setActiveTab(defaultTab);
+    }
+  }, [defaultTab, isAgent, isManager]);
 
   useEffect(() => {
     if (!focusPassword || activeTab !== "profile") return undefined;
@@ -291,7 +317,12 @@ function SettingsPage({ defaultTab = "profile", focusPassword = false }) {
     );
   };
 
-  const activeTabDetails = settingsTabs.find((tab) => tab.id === activeTab);
+  const visibleSettingsTabs = isAgent
+    ? settingsTabs.filter((tab) => !["team", "channels", "workspace"].includes(tab.id))
+    : isManager
+      ? settingsTabs.filter((tab) => !["channels", "workspace"].includes(tab.id))
+      : settingsTabs;
+  const activeTabDetails = visibleSettingsTabs.find((tab) => tab.id === activeTab) ?? visibleSettingsTabs[0];
 
   return (
     <div className="settings-page">
@@ -311,7 +342,7 @@ function SettingsPage({ defaultTab = "profile", focusPassword = false }) {
           role="tablist"
           aria-label="Danh mục cài đặt"
         >
-          {settingsTabs.map(({ id, label, icon: Icon }) => (
+          {visibleSettingsTabs.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               type="button"
@@ -548,6 +579,7 @@ function SettingsPage({ defaultTab = "profile", focusPassword = false }) {
                               }
                             >
                               <option>Quản trị viên</option>
+                              <option>Quản lý CSKH</option>
                               <option>Nhân viên CSKH</option>
                             </select>
                             <ChevronRight size={13} />
@@ -838,6 +870,7 @@ function SettingsPage({ defaultTab = "profile", focusPassword = false }) {
                     }
                   >
                     <option>Nhân viên CSKH</option>
+                    <option>Quản lý CSKH</option>
                     <option>Quản trị viên</option>
                   </select>
                 </label>

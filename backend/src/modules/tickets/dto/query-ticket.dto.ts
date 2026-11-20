@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsInt, Min, Max } from 'class-validator';
+import { IsOptional, IsString, IsInt, IsUUID, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -47,4 +47,14 @@ export class QueryTicketDto {
     @IsOptional()
     @IsString()
     is_urgent_bumped?: string;
+
+    @ApiPropertyOptional({ description: 'Lọc theo UUID nhân viên phụ trách (assigned_agent_id)', example: '11111111-1111-4111-8111-111111111111' })
+    @IsOptional()
+    @IsUUID()
+    assigned_agent_id?: string;
+
+    @ApiPropertyOptional({ description: 'Lọc các vé chưa được phân công (true)', example: 'true' })
+    @IsOptional()
+    @IsString()
+    unassigned?: string;
 }

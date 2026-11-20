@@ -40,8 +40,59 @@ export function getTicketTriage(ticket) {
   };
 }
 
+export const TICKET_STATUS_LABELS = {
+  new: 'Mới',
+  open: 'Đang mở',
+  in_progress: 'Đang xử lý',
+  pending: 'Đang chờ',
+  resolved: 'Đã giải quyết',
+  closed: 'Đã đóng',
+};
+
+export const TICKET_PRIORITY_LABELS = {
+  low: 'Thấp',
+  medium: 'Trung bình',
+  high: 'Cao',
+  urgent: 'Khẩn cấp',
+};
+
+export function normalizeTicketStatus(status) {
+  const raw = String(status || '').trim().toLowerCase();
+  if (['new', 'open', 'in_progress', 'pending', 'resolved', 'closed'].includes(raw)) {
+    return raw;
+  }
+  const byLabel = {
+    'mới': 'new',
+    'đang mở': 'open',
+    'đang xử lý': 'open',
+    'đang chờ': 'pending',
+    'chờ phản hồi': 'pending',
+    'đã giải quyết': 'resolved',
+    'đã đóng': 'closed',
+  }[raw];
+  return byLabel || 'open';
+}
+
+export function normalizeTicketPriority(priority) {
+  const raw = String(priority || '').trim().toLowerCase();
+  if (['low', 'medium', 'high', 'urgent'].includes(raw)) {
+    return raw;
+  }
+  const byLabel = {
+    'thấp': 'low',
+    'trung bình': 'medium',
+    'normal': 'medium',
+    'cao': 'high',
+    'khẩn cấp': 'urgent',
+  }[raw];
+  return byLabel || 'medium';
+}
+
 export function getTicketStatus(status) {
-  return ({ new: 'Đang mở', open: 'Đang mở', in_progress: 'Đang xử lý',
-    pending: 'Đang chờ', resolved: 'Đã giải quyết', closed: 'Đã giải quyết',
-  })[String(status || '').toLowerCase()] || 'Đang mở';
+  return TICKET_STATUS_LABELS[normalizeTicketStatus(status)] || 'Đang mở';
+}
+
+export function getTicketPriorityLabel(priority, isAiBumped = false) {
+  if (isAiBumped) return '🔥 AI Urgent (Priority Bump)';
+  return TICKET_PRIORITY_LABELS[normalizeTicketPriority(priority)] || 'Trung bình';
 }
